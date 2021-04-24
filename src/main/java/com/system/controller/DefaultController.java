@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/")
 public class DefaultController {
 
-    @GetMapping
+    @GetMapping("/")
     public ResponseEntity findUserByName() {
         return new ResponseEntity<>("Hello World", HttpStatus.OK);
     }
