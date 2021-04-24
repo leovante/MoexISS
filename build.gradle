@@ -3,7 +3,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
     id 'groovy'
     id 'java'
-    id 'war'
+//    id 'war'
     id 'idea'
 }
 
@@ -15,6 +15,9 @@ targetCompatibility = '11'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 bootWar {
+    archiveBaseName = 'stockbox'
+}
+bootJar {
     archiveBaseName = 'stockbox'
 }
 
@@ -38,8 +41,8 @@ dependencies {
     implementation 'org.mongodb:mongodb-driver-core:4.1.2'
 }
 dependencies {
-    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
-//    compile 'org.apache.tomcat.embed:tomcat-embed-jasper'
+//    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    compile 'org.apache.tomcat.embed:tomcat-embed-jasper'
 }
 
 test {
