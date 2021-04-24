@@ -10,6 +10,7 @@ group 'sandbox'
 //version '0.1'
 
 sourceCompatibility = '11'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 repositories {
     mavenCentral()
