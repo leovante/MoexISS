@@ -8,23 +8,12 @@ plugins {
 }
 
 group 'com.stockbox'
-//version '0.1'
-
-
 
 sourceCompatibility = '11'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-war {
-    archiveBaseName = 'stockbox'
-    enabled = true
-}
 
 bootWar {
-    archiveClassifier = 'boot'
-    mainClass = 'com.Application'
-    launchScript {
-        properties 'logFilename': 'app.log'
-    }
+    archiveBaseName = 'stockbox'
 }
 
 repositories {
