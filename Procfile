@@ -1,1 +1,1 @@
-web: java -jar build/libs/stockbox.jar --server.port=8080
+web: java -jar build/libs/stockbox.jar --server.port=$PORT
