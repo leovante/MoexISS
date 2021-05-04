@@ -28,6 +28,7 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.0.3'
 }
 dependencies {
+    compile 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -40,6 +41,7 @@ dependencies {
 dependencies {
 //    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
     compile 'org.apache.tomcat.embed:tomcat-embed-jasper'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
 }
 
 test {
