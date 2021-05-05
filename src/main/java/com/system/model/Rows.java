@@ -1,6 +1,5 @@
 package com.system.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -15,7 +14,6 @@ public class Rows {
     @JacksonXmlProperty(localName = "row")
     public List<Row> rows;
 
-    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public Rows(@JsonProperty("row") List<Row> rows) {
         this.rows = rows;
     }
