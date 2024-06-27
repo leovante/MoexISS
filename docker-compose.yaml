@@ -1,0 +1,83 @@
+version: '3.5'
+services:
+  postgres1:
+    container_name: postgres_moex2_db
+    image: postgres
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - 5440:5432
+    restart: unless-stopped
+    networks:
+      - my_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 300M
+
+  moex2:
+    container_name: moex2
+    image: leovante/moex2:latest
+    depends_on:
+      - postgres1
+#    build:
+#      context: ./
+#      dockerfile: ./dockerfile
+#      args:
+#        JAR_FILE: target/moex2-1.0-SNAPSHOT.jar
+    env_file: .env
+    environment:
+      APP_PORT: 8080
+      DB_HOST: postgres1
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JVM_OPTS: >
+        -XX:+CrashOnOutOfMemoryError
+    restart: always
+    ports:
+      - 24300:8080
+    networks:
+      - my_network
+    command: [ "java","-jar","-Dliquibase.hub.mode=off","/usr/local/service/moex2-1.0-SNAPSHOT.jar" ]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 500M
+
+  pgadmin:
+    container_name: pgadmin4_container
+    image: dpage/pgadmin4:7
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - 5050:80
+    networks:
+      - my_network
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 150M
+
+volumes:
+  postgres:
+  pgadmin-data:
+
+networks:
+  my_network:
