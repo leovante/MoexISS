@@ -9,6 +9,7 @@ import ru.exdata.moex.db.dao.SecuritiesDao;
 import ru.exdata.moex.dto.RequestParamSecurities;
 import ru.exdata.moex.dto.SecuritiesDto;
 import ru.exdata.moex.handler.client.SecuritiesApiClient;
+import ru.exdata.moex.handler.model.PageNumber;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -66,22 +67,6 @@ public class SecuritiesHandler {
                 }))
                 .flatMapIterable(it -> it.getSecurities() == null ? Collections.singleton(new Object[0]) : it.getSecurities().getData())
                 ;
-    }
-
-    private class PageNumber {
-        private int page = 0;
-
-        void increment(int i) {
-            page = page + i;
-        }
-
-        public int get() {
-            return page;
-        }
-
-        public void stop() {
-            page = -1;
-        }
     }
 
     private void validateRequest(RequestParamSecurities request) {

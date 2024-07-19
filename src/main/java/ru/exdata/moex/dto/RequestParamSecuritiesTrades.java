@@ -1,7 +1,6 @@
 package ru.exdata.moex.dto;
 
 import io.micronaut.core.annotation.Introspected;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.serde.annotation.Serdeable;
@@ -9,11 +8,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Introspected(excludes = "duration")
 @Serdeable
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RequestParamSecuritiesTrades {
+public class RequestParamSecuritiesTrades extends GeneralRequest {
 
     @QueryValue(defaultValue = "stock")
     private String engine;

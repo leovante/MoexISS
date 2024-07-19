@@ -10,5 +10,6 @@
     <include file="schema/002-create-table-moex-sync.sql" relativeToChangelogFile="true"/>
     <include file="schema/003-create-table-securities-history.sql" relativeToChangelogFile="true"/>
     <include file="schema/004-create-table-securities-holiday.sql" relativeToChangelogFile="true"/>
+    <include file="schema/005-create-table-securities-candles.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

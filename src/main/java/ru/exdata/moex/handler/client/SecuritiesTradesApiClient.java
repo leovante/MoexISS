@@ -26,7 +26,6 @@ public interface SecuritiesTradesApiClient {
             @QueryValue(defaultValue = "shares") String market,
             @QueryValue(defaultValue = "0") String tradeno,
             @QueryValue(defaultValue = "0") String start,
-            @QueryValue(defaultValue = "100") String limit)
-            ;
+            @QueryValue(defaultValue = "100") String limit);
 
 }

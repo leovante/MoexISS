@@ -1,9 +1,7 @@
 package ru.exdata.moex.handler;
 
 import jakarta.inject.Singleton;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -13,6 +11,7 @@ import ru.exdata.moex.dto.RequestParamSecuritiesTrades;
 import ru.exdata.moex.dto.trades.SecuritiesTrades;
 import ru.exdata.moex.dto.trades.SecuritiesTradesDto;
 import ru.exdata.moex.handler.client.SecuritiesTradesApiClient;
+import ru.exdata.moex.handler.model.PageNumber;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -46,7 +45,7 @@ public class SecuritiesTradesHandler {
                         .doOnNext(it -> securitiesTradesDao.save(it).subscribe()))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
                     request.setTradeno(0);
-                    return pageNumber.getPage() >= 0;
+                    return pageNumber.get() >= 0;
                 }));
     }
 
@@ -56,7 +55,7 @@ public class SecuritiesTradesHandler {
                         request.getEngine(),
                         request.getMarket(),
                         String.valueOf(request.getTradeno()),
-                        String.valueOf(pageNumber.getPage() + request.getStart()),
+                        String.valueOf(pageNumber.get() + request.getStart()),
                         String.valueOf(MOEX_RESPONSE_MAX_ROW))
                 .filter(it -> !it.getSecuritiesTrades().getData().isEmpty())
                 .filter(dataFilter())
@@ -72,16 +71,6 @@ public class SecuritiesTradesHandler {
                 ;
     }
 
-    @Getter
-    @Setter
-    private class PageNumber {
-        private int page = 0;
-
-        void increment(int i) {
-            page = page + i;
-        }
-    }
-
     private Consumer<SecuritiesTradesDto> pagePaginator(RequestParamSecuritiesTrades request, PageNumber pageNumber) {
         return it -> {
             var firstName = it.getSecuritiesTrades().getData();
@@ -90,7 +79,7 @@ public class SecuritiesTradesHandler {
                 pageNumber.increment(it.getSecuritiesTrades().getData().size());
             } else {
                 pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
-                log.debug("pageNumber: " + pageNumber.getPage());
+                log.debug("pageNumber: " + pageNumber.get());
             }
         };
     }

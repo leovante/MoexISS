@@ -12,8 +12,6 @@ import reactor.core.publisher.Mono;
 import ru.exdata.moex.db.entity.SecuritiesTrades;
 import ru.exdata.moex.dto.RequestParamSecuritiesTrades;
 
-import java.time.Instant;
-
 @R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface SecuritiesTradesRepository extends ReactiveStreamsCrudRepository<SecuritiesTrades, Long> {
 
@@ -23,7 +21,7 @@ public interface SecuritiesTradesRepository extends ReactiveStreamsCrudRepositor
             + "from securities_trades t "
             + "where t.sys_time >= cast(:date as timestamp) "
             + "  and t.sys_time < cast(:date as timestamp) + interval '1 day' "
-            + "  and UPPER(t.sec_id) = UPPER(:security) "
+            + "  and t.sec_id = UPPER(:security) "
             + "order by t.trade_no desc "
             + "")
     @NonNull Mono<SecuritiesTrades> findOneBySysTimeAndSecurityOrderByTradeNoDesc(@NonNull String date, @NonNull String security);

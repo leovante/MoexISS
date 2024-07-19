@@ -1,9 +1,5 @@
 package ru.exdata.moex.dto;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.Duration;
 import java.time.LocalDate;
 
@@ -15,12 +11,33 @@ public class GeneralRequest {
         return Duration.ofDays(DAYS.toChronoUnit().between(getFrom(), getTill()));
     }
 
+
     public LocalDate getFrom() {
         return null;
     }
 
     public LocalDate getTill() {
         return null;
+    }
+
+    public String getBoard() {
+        return null;
+    }
+
+    public String getSecurity() {
+        return null;
+    }
+
+    public void setSecurity() {
+    }
+
+    public void setFrom(LocalDate from) {
+    }
+
+    public void setTill(LocalDate till) {
+    }
+
+    public void setBoard(String board) {
     }
 
 }
