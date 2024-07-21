@@ -1,32 +1,28 @@
 version: '3.5'
 services:
+
   postgres1:
-    container_name: postgres_moex2_db
     image: postgres
+    container_name: postgres_moex2
 #    extra_hosts:
 #      - "host.docker.internal:host-gateway"
-    env_file: .env
+    restart: always
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-      PGDATA: /data/postgres
     volumes:
       - postgres:/data/postgres
+#      - ${WD}/postgress_db/scripts/:/docker-entrypoint-initdb.d/
+#      - pg_data:/var/lib/postgresql/data
     ports:
       - 5440:5432
-    restart: unless-stopped
     networks:
       - my_network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 300M
 
   moex2:
-    container_name: moex2
     image: leovante/moex2:latest
+    container_name: moex2
     depends_on:
       - postgres1
 #    build:
@@ -34,7 +30,6 @@ services:
 #      dockerfile: ./dockerfile
 #      args:
 #        JAR_FILE: target/moex2-1.0-SNAPSHOT.jar
-    env_file: .env
     environment:
       APP_PORT: 8080
       DB_HOST: postgres1
@@ -57,27 +52,50 @@ services:
           memory: 500M
 
   pgadmin:
-    container_name: pgadmin4_container
-    image: dpage/pgadmin4:7
-    restart: always
+    container_name: pgadmin
+    build:
+      context: .
+      dockerfile: ./dockerfile_pgadmin/Dockerfile
     environment:
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+#      PGADMIN_CONFIG_SERVER_MODE: 'True'
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: root
     ports:
       - 5050:80
     networks:
       - my_network
+    depends_on:
+      - postgres1
+
+  redis:
+    image: redis
+    restart: always
     volumes:
-      - pgadmin-data:/var/lib/pgadmin
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 150M
+      - redis:/data
+
+  superset:
+    container_name: "superset"
+    build:
+      context: .
+      dockerfile: ./dockerfile_superset/Dockerfile
+    restart: always
+    environment:
+      MAPBOX_API_KEY: ${MAPBOX_API_KEY}
+      SUPERSET_HOME: /etc/superset
+    ports:
+      - "8088:8088"
+    depends_on:
+      - redis
 
 volumes:
   postgres:
-  pgadmin-data:
+  pg_data:
+    external: false
+    name: pg_data
+  redis:
+    external: false
+    name: redis
 
 networks:
   my_network:

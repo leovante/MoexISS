@@ -11,12 +11,12 @@ swagger-ui: http://path-to-stub/swagger-ui.html
     docker compose down
     docker rmi moex2
     docker build -t moex2 .
-    docker compose up
+    docker compose up -d
 - Invoke only your program inside a container:
     docker run --name moex2 -p 24300:8080 moex2
 
 ### запуск локально образа из docker hub
-- docker compose up
+- docker compose up -d
 
 ### тест энпоинтов. Ввести в терминале любой запроос: (все ендпоинты это топики, которые возвращают stream-json)
 ### каждый ответ от биржи кешируется в БД. В случае повторного вызова с теми же датами будет запрос из БД.
@@ -36,3 +36,8 @@ curl -X GET "http://localhost:24300/iss/history/engines/stock/markets/shares/boa
 - в таблицу securities_candles сохраняются 10-ти минутные свечи.
 прокси на официальный https://iss.moex.com/iss/reference/155
 curl -X GET "http://localhost:24300/iss/engines/stock/markets/shares/securities/sber/candles?from=2024-03-01&till=2024-07-15"
+
+## [Apache Superset](https://superset.apache.org/)
+
+Username:guest  
+Password:guest 
