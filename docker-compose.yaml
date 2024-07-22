@@ -13,8 +13,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres:/data/postgres
-#      - ${WD}/postgress_db/scripts/:/docker-entrypoint-initdb.d/
-#      - pg_data:/var/lib/postgresql/data
     ports:
       - 5440:5432
     networks:
@@ -51,6 +49,20 @@ services:
           cpus: '0.5'
           memory: 500M
 
+  minio-image:
+    container_name: minio-image
+    build:
+      context: .
+      dockerfile: ./dockerfile_minio/Dockerfile
+    restart: always
+    working_dir: "/minio-image/storage"
+    ports:
+        - 9000:9000
+    environment:
+        MINIO_ACCESS_KEY: minio-image
+        MINIO_SECRET_KEY: minio-image-pass
+    command: server /minio-image/storage
+
   pgadmin:
     container_name: pgadmin
     build:
@@ -75,7 +87,7 @@ services:
       - redis:/data
 
   superset:
-    container_name: "superset"
+    container_name: superset
     build:
       context: .
       dockerfile: ./dockerfile_superset/Dockerfile
@@ -83,16 +95,64 @@ services:
     environment:
       MAPBOX_API_KEY: ${MAPBOX_API_KEY}
       SUPERSET_HOME: /etc/superset
+    networks:
+      - my_network
     ports:
-      - "8088:8088"
+      - 8088:8088
     depends_on:
       - redis
+
+  postgres_secmaster:
+    build:
+      context: .
+      dockerfile: ./dockerfile_postgres_secmaster/Dockerfile
+    restart: always
+    container_name: postgres_secmaster
+    networks:
+      - my_network
+    ports:
+      - 5432:5432
+    environment:
+      - SHARED_PASSWORD=password
+      - POSTGRES_PASSWORD=posgres349
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  postgres:
+    image: postgres
+    container_name: postgres_airflow
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - pg_data_airflow:/var/lib/postgresql/data
+
+  airflow:
+    image: airflow
+    container_name: airflow
+    build:
+      context: .
+      dockerfile: ./dockerfile_airflow/Dockerfile
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=Local
+      - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+    ports:
+      - 8080:8080
+    command: webserver
 
 volumes:
   postgres:
   pg_data:
     external: false
     name: pg_data
+  pg_data_airflow:
+    external: false
+    name: pg_data_airflow
   redis:
     external: false
     name: redis

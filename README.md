@@ -8,7 +8,7 @@ swagger-ui: http://path-to-stub/swagger-ui.html
 - docker build -t leovante/moex2 .
 - docker compose up (заменить в файле leovante/moex2:latest на moex2)
 - Your program changed?
-    docker compose down
+    docker compose down -v
     docker rmi moex2
     docker build -t moex2 .
     docker compose up -d
@@ -38,6 +38,5 @@ curl -X GET "http://localhost:24300/iss/history/engines/stock/markets/shares/boa
 curl -X GET "http://localhost:24300/iss/engines/stock/markets/shares/securities/sber/candles?from=2024-03-01&till=2024-07-15"
 
 ## [Apache Superset](https://superset.apache.org/)
-
 Username:guest  
 Password:guest 
