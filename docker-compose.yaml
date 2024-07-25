@@ -4,8 +4,8 @@ services:
   postgres1:
     image: postgres
     container_name: postgres_moex2
-#    extra_hosts:
-#      - "host.docker.internal:host-gateway"
+    #    extra_hosts:
+    #      - "host.docker.internal:host-gateway"
     restart: always
     environment:
       POSTGRES_USER: ${DB_USERNAME}
@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres:/data/postgres
     ports:
-      - 5440:5432
+      - '5440:5432'
     networks:
       - my_network
 
@@ -23,11 +23,11 @@ services:
     container_name: moex2
     depends_on:
       - postgres1
-#    build:
-#      context: ./
-#      dockerfile: ./dockerfile
-#      args:
-#        JAR_FILE: target/moex2-1.0-SNAPSHOT.jar
+    #    build:
+    #      context: ./
+    #      dockerfile: ./dockerfile
+    #      args:
+    #        JAR_FILE: target/moex2-1.0-SNAPSHOT.jar
     environment:
       APP_PORT: 8080
       DB_HOST: postgres1
@@ -39,31 +39,23 @@ services:
         -XX:+CrashOnOutOfMemoryError
     restart: always
     ports:
-      - 24300:8080
+      - '24300:8080'
     networks:
       - my_network
     command: [ "java","-jar","-Dliquibase.hub.mode=off","/usr/local/service/moex2-1.0-SNAPSHOT.jar" ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://moex2:8080/health" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 500M
-
-  minio-image:
-    container_name: minio-image
-    build:
-      context: .
-      dockerfile: ./dockerfile_minio/Dockerfile
-    restart: always
-    working_dir: "/minio-image/storage"
-    networks:
-      - my_network
-    ports:
-        - 9000:9000
-    environment:
-        MINIO_ACCESS_KEY: minio-image
-        MINIO_SECRET_KEY: minio-image-pass
-    command: server /minio-image/storage
+        reservations:
+          cpus: '0.5'
 
   pgadmin:
     container_name: pgadmin
@@ -72,32 +64,54 @@ services:
       dockerfile: ./dockerfile_pgadmin/Dockerfile
     environment:
       PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
-#      PGADMIN_CONFIG_SERVER_MODE: 'True'
+      #      PGADMIN_CONFIG_SERVER_MODE: 'True'
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: root
+    volumes:
+      - ${WD}/pgadmin2/:/var/lib/pgadmin/
     ports:
-      - 5050:80
+      - '5050:80'
     networks:
       - my_network
     depends_on:
       - postgres1
 
+  minio-image:
+    container_name: minio
+    build:
+      context: .
+      dockerfile: ./dockerfile_minio/Dockerfile
+    restart: always
+    working_dir: "/minio-image/storage"
+    environment:
+      MINIO_ACCESS_KEY: minio-image
+      MINIO_SECRET_KEY: minio-image-pass
+    volumes:
+      - ${WD}/minio/storage/:/minio-image/storage/
+    ports:
+      - '9000:9000'
+    networks:
+      - my_network
+    command: server /minio-image/storage
+
   mlflow-image:
-      container_name: "mlflow-image"
-      build:
-          context: .
-          dockerfile: ./dockerfile_mlflowserver/Dockerfile
-      working_dir: "/mlflow-image"
-      environment:
-          MLFLOW_S3_ENDPOINT_URL: http://minio-image:9000
-          AWS_ACCESS_KEY_ID: minio-image
-          AWS_SECRET_ACCESS_KEY: minio-image-pass
-      ports:
-          - 5500:5500
-      command: mlflow server --host 0.0.0.0 --port 5500 --backend-store-uri /mlflow-image/mlruns
+    container_name: "mlflow-image"
+    build:
+      context: .
+      dockerfile: ./dockerfile_mlflowserver/Dockerfile
+    working_dir: "/mlflow-image"
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio-image:9000
+      AWS_ACCESS_KEY_ID: minio-image
+      AWS_SECRET_ACCESS_KEY: minio-image-pass
+    volumes:
+      - ${WD}/mlflow/:/mlflow-image/
+    ports:
+      - '5500:5500'
+    command: mlflow server --host 0.0.0.0 --port 5500 --backend-store-uri /mlflow-image/mlruns
 
   jupyter-image:
-    container_name: "jupyter-image"
+    container_name: jupyter
     build:
       context: .
       dockerfile: ./dockerfile_jupyter_notebook/Dockerfile
@@ -106,10 +120,14 @@ services:
       AWS_ACCESS_KEY_ID: minio-image
       AWS_SECRET_ACCESS_KEY: minio-image-pass
       MLFLOW_TRACKING_URI: http://mlflow-image:5500
+    volumes:
+      - ${WD}/notebooks/:/home/jovyan/work/
+      - ${WD}/q_pack/:/home/jovyan/work/q_pack/
+      - ${WD}/mlflow/:/mlflow-image/
     networks:
       - my_network
     ports:
-      - 8888:8888
+      - '8888:8888'
 
   redis:
     image: redis
@@ -126,10 +144,13 @@ services:
     environment:
       MAPBOX_API_KEY: ${MAPBOX_API_KEY}
       SUPERSET_HOME: /etc/superset
+    volumes:
+      - ${WD}/superset/superset_config.py:/etc/superset/superset_config.py
+      - ${WD}/superset/superset.db:/var/lib/superset/superset.db
     networks:
       - my_network
     ports:
-      - 8088:8088
+      - '8088:8088'
     depends_on:
       - redis
 
@@ -142,7 +163,7 @@ services:
     networks:
       - my_network
     ports:
-      - 5432:5432
+      - '5432:5432'
     environment:
       - SHARED_PASSWORD=password
       - POSTGRES_PASSWORD=posgres349
@@ -159,7 +180,7 @@ services:
     networks:
       - my_network
     ports:
-      - 5444:5432
+      - '5444:5432'
     volumes:
       - pg_data_airflow:/var/lib/postgresql/data
 
@@ -181,8 +202,11 @@ services:
       - LOAD_EX=n
       - EXECUTOR=Local
       - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+    volumes:
+      - ${WD}/airflow/dags/:/usr/local/airflow/dags
+      - ${WD}/q_pack/:/usr/local/airflow/dags/q_pack
     ports:
-      - 8080:8080
+      - '8080:8080'
     command: webserver
 
 volumes:

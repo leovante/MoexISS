@@ -36,8 +36,8 @@ ENV MLFLOW_TRACKING_URI "http://mlflow-image:5500"
 # ENV GUNICORN_CMD_ARGS --log-level WARNING
 
 COPY ./dockerfile_airflow/requirements.txt /airflow/requirements.txt
-COPY ./Storage/airflow/dags /usr/local/airflow/dags
-COPY ./Storage/q_pack /usr/local/airflow/dags/q_pack
+#COPY ./Storage/airflow/dags /usr/local/airflow/dags
+#COPY ./Storage/q_pack /usr/local/airflow/dags/q_pack
 
 RUN set -ex \
     && buildDeps=' \

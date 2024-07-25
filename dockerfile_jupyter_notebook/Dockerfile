@@ -1,8 +1,8 @@
 FROM jupyter/scipy-notebook
 
 USER root
-COPY ./Storage/notebooks /home/jovyan/work
-COPY ./Storage/q_pack /home/jovyan/work/q_pack
+#COPY ./Storage/notebooks /home/jovyan/work
+#COPY ./Storage/q_pack /home/jovyan/work/q_pack
 #COPY ./Storage/mlflow /mlflow-image
 
 COPY ./dockerfile_jupyter_notebook/requirements.txt /tmp/
