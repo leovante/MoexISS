@@ -7,3 +7,5 @@ mlflow==1.4.0
 minio
 boto3==1.14.44
 scikit-learn
+requests==2.31.0
+fastapi==0.89.1

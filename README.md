@@ -6,12 +6,12 @@ swagger-ui: http://path-to-stub/swagger-ui.html
 ### запуск сервиса в docker локально
 - mvn clean install -DskipTests
 - docker build -t leovante/moex2 .
-- docker compose up (заменить в файле leovante/moex2:latest на moex2)
+- docker compose up --build (заменить в файле: leovante/moex2:latest на moex2) 
 - Your program changed?
     docker compose down -v
     docker rmi moex2
     docker build -t moex2 .
-    docker compose up -d
+    docker compose up -d --build
 - Invoke only your program inside a container:
     docker run --name moex2 -p 24300:8080 moex2
 
