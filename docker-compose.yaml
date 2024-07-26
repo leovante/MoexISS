@@ -8,6 +8,7 @@ services:
     #      - "host.docker.internal:host-gateway"
     restart: always
     environment:
+      PGUSER: postgres
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
@@ -17,12 +18,18 @@ services:
       - '5440:5432'
     networks:
       - my_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   moex2:
     image: leovante/moex2:latest
     container_name: moex2
     depends_on:
-      - postgres1
+      postgres1:
+        condition: service_healthy
     #    build:
     #      context: ./
     #      dockerfile: ./dockerfile
@@ -165,18 +172,24 @@ services:
     ports:
       - '5432:5432'
     environment:
-      - SHARED_PASSWORD=password
-      - POSTGRES_PASSWORD=posgres349
+      PGUSER: postgres
+      SHARED_PASSWORD: password
+      POSTGRES_PASSWORD: posgres349
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres
     container_name: postgres_airflow
     environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     networks:
       - my_network
     ports:
