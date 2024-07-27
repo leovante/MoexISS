@@ -82,6 +82,12 @@ services:
       - my_network
     depends_on:
       - postgres1
+    healthcheck:
+      test: [ "CMD", "wget", "-O", "-", "http://localhost:80/misc/ping" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 140s
 
   minio-image:
     container_name: minio
@@ -173,12 +179,14 @@ services:
       - '5432:5432'
     environment:
       PGUSER: postgres
+      POSTGRES_USER: postgres
       SHARED_PASSWORD: password
       POSTGRES_PASSWORD: posgres349
+      POSTGRES_DB: securities_master
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -196,6 +204,11 @@ services:
       - '5444:5432'
     volumes:
       - pg_data_airflow:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   airflow:
     image: airflow

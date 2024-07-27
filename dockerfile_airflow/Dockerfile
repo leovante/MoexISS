@@ -32,12 +32,13 @@ ENV AWS_ACCESS_KEY_ID "minio-image"
 ENV AWS_SECRET_ACCESS_KEY "minio-image-pass"
 ENV MLFLOW_TRACKING_URI "http://mlflow-image:5500"
 
+ENV POSTGRES_HOST "postgres_airflow"
+ENV POSTGRES_PORT "5432"
+
 # Disable noisy "Handling signal" log messages:
 # ENV GUNICORN_CMD_ARGS --log-level WARNING
 
 COPY ./dockerfile_airflow/requirements.txt /airflow/requirements.txt
-#COPY ./Storage/airflow/dags /usr/local/airflow/dags
-#COPY ./Storage/q_pack /usr/local/airflow/dags/q_pack
 
 RUN set -ex \
     && buildDeps=' \
@@ -89,10 +90,11 @@ COPY dockerfile_airflow/entrypoint.sh /entrypoint.sh
 COPY dockerfile_airflow/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
 RUN chown -R airflow: ${AIRFLOW_USER_HOME}
+RUN chmod 755 entrypoint.sh
 
 EXPOSE 8080 5555 8793
 
-USER airflow
+# USER root
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["webserver"]
