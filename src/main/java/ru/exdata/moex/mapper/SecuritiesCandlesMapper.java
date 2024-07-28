@@ -1,6 +1,6 @@
 package ru.exdata.moex.mapper;
 
-import ru.exdata.moex.db.entity.SecuritiesCandles;
+import ru.exdata.moex.db.entity.SecuritiesCandlesAbstract;
 import ru.exdata.moex.db.entity.SecuritiesCandlesPk;
 import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
 import ru.exdata.moex.dto.candles.Row;
@@ -20,7 +20,7 @@ public class SecuritiesCandlesMapper {
         return it;
     }
 
-    public static Row fromEntityToArrSecuritiesCandles(SecuritiesCandles sec) {
+    public static Row fromEntityToArrSecuritiesCandles(SecuritiesCandlesAbstract sec) {
         Row it = new Row();
         it.setOpen(sec.getOpen());
         it.setClose(sec.getClose());
@@ -33,19 +33,21 @@ public class SecuritiesCandlesMapper {
         return it;
     }
 
-    public static SecuritiesCandles fromArrToEntity(Row row, RequestParamSecuritiesCandles request) {
-        return new SecuritiesCandles(
+    public static <T extends SecuritiesCandlesAbstract> T fromArrToEntity(Row row,
+                                                                          RequestParamSecuritiesCandles request,
+                                                                          T securitiesCandles) {
+        securitiesCandles.setSecuritiesCandlesPk(
                 new SecuritiesCandlesPk(
                         request.getSecurity(),
                         MapperUtils.mapFromObjectToLocalDateTime(row.getBegin()),
-                        MapperUtils.mapFromObjectToLocalDateTime(row.getEnd())),
-                row.getOpen(),
-                row.getClose(),
-                row.getHigh(),
-                row.getLow(),
-                row.getValue(),
-                row.getVolume()
-        );
+                        MapperUtils.mapFromObjectToLocalDateTime(row.getEnd())));
+        securitiesCandles.setOpen(row.getOpen());
+        securitiesCandles.setClose(row.getClose());
+        securitiesCandles.setHigh(row.getHigh());
+        securitiesCandles.setLow(row.getLow());
+        securitiesCandles.setValue(row.getValue());
+        securitiesCandles.setVolume(row.getVolume());
+        return securitiesCandles;
     }
 
 }

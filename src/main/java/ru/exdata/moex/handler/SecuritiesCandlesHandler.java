@@ -7,6 +7,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.SecuritiesCandlesDao;
+import ru.exdata.moex.db.entity.SecuritiesCandlesAbstract;
 import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
 import ru.exdata.moex.dto.candles.Document;
 import ru.exdata.moex.dto.candles.Row;
@@ -16,6 +17,7 @@ import ru.exdata.moex.mapper.SecuritiesCandlesMapper;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Set;
 
 /**
  * Получение названий акций списком с пагинацией.
@@ -40,7 +42,7 @@ public class SecuritiesCandlesHandler {
         return Flux.defer(() ->
                         securitiesCandlesDao
                                 .findAllByBeginAtAndSecurity(request)
-                                .map(SecuritiesCandlesMapper::fromEntityToArrSecuritiesCandles))
+                                .map(it -> SecuritiesCandlesMapper.fromEntityToArrSecuritiesCandles((SecuritiesCandlesAbstract) it)))
                 .switchIfEmpty(fetchAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
                                     holidayService.incrementDay(request);
@@ -56,10 +58,10 @@ public class SecuritiesCandlesHandler {
         PageNumber pageNumber = new PageNumber();
         return Flux.defer(() -> fetchPageable(request, pageNumber)
 //                        .map(SecuritiesCandlesMapper::fromDtoToArrSecuritiesCandles)
-                        .parallel()
-                        .runOn(Schedulers.boundedElastic())
-                        .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe())
-                        .sequential()
+                                .parallel()
+                                .runOn(Schedulers.boundedElastic())
+                                .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe())
+                                .sequential()
                 )
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> pageNumber.get() > 0));
     }
@@ -69,7 +71,8 @@ public class SecuritiesCandlesHandler {
                         request.getSecurity(),
                         request.getFrom().toString(),
                         request.getTill().toString(),
-                        String.valueOf(pageNumber.get()))
+                        String.valueOf(pageNumber.get()),
+                        request.getInterval())
                 .filter(it -> !it.getData().getRows().isEmpty())
                 .doOnNext(it -> {
                     var firstName = it.getData().getRows();
@@ -106,6 +109,9 @@ public class SecuritiesCandlesHandler {
         }
         if (request.getTill().isAfter(LocalDate.now())) {
             throw new RuntimeException("Ошибка валидатора запроса. till should be before now");
+        }
+        if (!Set.of(1, 10, 60, 24, 7, 31).contains(request.getInterval())) {
+            throw new RuntimeException("Ошибка валидатора запроса. Interval should be eq = 1,10,60,24,7,31");
         }
         /*if (Duration.between(request.getFrom(), request.getTill()).toDays() <= 3 * 365) {
             throw new RuntimeException("Ошибка валидатора запроса. Не более 3-х лет");

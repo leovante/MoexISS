@@ -18,11 +18,12 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
 
     private final static String FORMAT_DATE = "yyyy-MM-dd";
 
-    public RequestParamSecuritiesCandles(String security, LocalDate from, LocalDate till) {
+    public RequestParamSecuritiesCandles(String security, LocalDate from, LocalDate till, Integer interval) {
         super();
         this.security = security;
         this.from = from;
         this.till = till;
+        this.interval = interval;
     }
 
     @PathVariable
@@ -33,6 +34,8 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
     @Format(FORMAT_DATE)
     @QueryValue
     private LocalDate till;
+    @QueryValue
+    private Integer interval;
 
     public String getSecurity() {
         return security.toUpperCase();

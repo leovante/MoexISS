@@ -1,13 +1,14 @@
 package ru.exdata.moex.enums;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
 public enum Market {
+
     Shares("shares");
 
-    Market(String value) {
-        this.value = value;
-    }
     public final String value;
-    public String getValue() {
-        return value;
-    }
+
 }

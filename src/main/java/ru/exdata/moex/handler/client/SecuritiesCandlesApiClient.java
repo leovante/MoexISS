@@ -22,6 +22,7 @@ public interface SecuritiesCandlesApiClient {
     Mono<Document> fetch(@QueryValue String security,
                          @QueryValue String from,
                          @QueryValue String till,
-                         @QueryValue(defaultValue = "0") String start);
+                         @QueryValue(defaultValue = "0") String start,
+                         @QueryValue Integer interval);
 
 }

@@ -1,18 +1,16 @@
 package ru.exdata.moex.enums;
 
-import io.micronaut.serde.annotation.Serdeable;
+import io.micronaut.core.annotation.Introspected;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-@Serdeable
+@Getter
+@Introspected
 @AllArgsConstructor
 public enum Engine {
 
     Stock("stock");
 
     public final String value;
-
-    public String getValue() {
-        return value;
-    }
 
 }
