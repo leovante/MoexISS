@@ -12,12 +12,12 @@ import ru.exdata.moex.handler.SecuritiesTradesHandler;
 
 @Validated
 @RequiredArgsConstructor
-@Controller("/iss/engines/stock/markets/shares/securities")
+@Controller("/iss")
 public class SecuritiesTradesRouter {
 
     private final SecuritiesTradesHandler securitiesTradesService;
 
-    @Get("/{security}/trades")
+    @Get("/engines/stock/markets/shares/securities/{security}/trades")
     @Produces(MediaType.APPLICATION_JSON_STREAM)
     @Status(HttpStatus.OK)
     public Flux<Object[]> getSecuritiesTrades(@Valid @RequestBean RequestParamSecuritiesTrades request) {

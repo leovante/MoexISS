@@ -2,6 +2,7 @@ package ru.exdata.moex.db.entity;
 
 import io.micronaut.data.annotation.Embeddable;
 import io.micronaut.data.annotation.MappedProperty;
+import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.*;
 
@@ -19,9 +20,9 @@ public class SecuritiesCandlesPk {
 
     @MappedProperty("sec_id")
     private String secId;
-    @MappedProperty("begin_at")
+    @MappedProperty(value = "begin_at", type = DataType.TIMESTAMP)
     private LocalDateTime beginAt;
-    @MappedProperty("end_at")
+    @MappedProperty(value = "end_at", type = DataType.TIMESTAMP)
     private LocalDateTime endAt;
 
 }

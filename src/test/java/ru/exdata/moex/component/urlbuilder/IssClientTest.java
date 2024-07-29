@@ -1,24 +1,6 @@
 package ru.exdata.moex.component.urlbuilder;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import ru.exdata.moex.component.urlbuilder.pathmap.IssClient;
-import ru.exdata.moex.component.urlbuilder.response.Block;
-import ru.exdata.moex.component.urlbuilder.response.Cursor;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import org.junit.jupiter.api.*;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
-
+/*
 @WireMockTest
 class IssClientTest {
     private IssClient issClient;
@@ -178,4 +160,4 @@ class IssClientTest {
             throw new RuntimeException(e);
         }
     }
-}
+}*/

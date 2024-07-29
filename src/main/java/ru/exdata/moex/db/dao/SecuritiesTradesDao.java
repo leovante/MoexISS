@@ -4,6 +4,7 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import ru.exdata.moex.db.entity.SecuritiesTrades;
 import ru.exdata.moex.db.repository.SecuritiesTradesRepository;
@@ -12,6 +13,7 @@ import ru.exdata.moex.mapper.SecuritiesTradesMapper;
 
 import java.time.LocalDate;
 
+@Slf4j
 @RequiredArgsConstructor
 @Singleton
 public class SecuritiesTradesDao {
@@ -20,6 +22,7 @@ public class SecuritiesTradesDao {
 
     @Transactional
     public @NonNull Mono<SecuritiesTrades> findLast(RequestParamSecuritiesTrades request) {
+        log.info("fetch trades from db. date:now() secId:{}", request.getSecurity());
         return securitiesTradesRepository.findOneBySysTimeAndSecurityOrderByTradeNoDesc(
                         LocalDate.now().toString(),
                         request.getSecurity());

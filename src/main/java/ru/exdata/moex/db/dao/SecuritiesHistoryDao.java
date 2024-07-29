@@ -3,7 +3,7 @@ package ru.exdata.moex.db.dao;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
-import reactor.core.publisher.Flux;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import ru.exdata.moex.db.entity.SecuritiesHistory;
 import ru.exdata.moex.db.repository.SecuritiesHistoryRepository;
@@ -12,6 +12,7 @@ import ru.exdata.moex.mapper.SecuritiesHistoryMapper;
 
 import java.time.LocalDate;
 
+@Slf4j
 @RequiredArgsConstructor
 @Singleton
 public class SecuritiesHistoryDao {
@@ -20,6 +21,7 @@ public class SecuritiesHistoryDao {
 
     @Transactional
     public Mono<Object[]> findByTradeDateAndBoardIdAndSecId(RequestParamSecuritiesHistory request, LocalDate date) {
+        log.info("fetch history from db. date:{} secId:{}", date, request.getSecurity());
         return securitiesHistoryRepository.findByTradeDateAndBoardIdAndSecId(
                         date,
                         request.getBoard(),

@@ -12,13 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @Serdeable
 @lombok.Data
-public class Data {
+public class Metadata {
 
-    /*@JacksonXmlProperty(isAttribute = false, localName = "metadata")
-    private Metadata metadata;*/
-
-    @JacksonXmlElementWrapper(localName = "rows", useWrapping = true)
-    @JacksonXmlProperty(/*isAttribute = false, */localName = "row")
-    private List<Row> rows;
+    @JacksonXmlElementWrapper(localName = "columns", useWrapping = true)
+    @JacksonXmlProperty(/*isAttribute = false, */localName = "column")
+    private List<Column> columns;
 
 }

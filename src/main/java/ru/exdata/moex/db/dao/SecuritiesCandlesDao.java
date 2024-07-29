@@ -3,6 +3,7 @@ package ru.exdata.moex.db.dao;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.exdata.moex.db.entity.*;
@@ -15,6 +16,7 @@ import ru.exdata.moex.mapper.SecuritiesCandlesMapper;
 
 import java.util.Objects;
 
+@Slf4j
 @RequiredArgsConstructor
 @Singleton
 public class SecuritiesCandlesDao {
@@ -28,6 +30,7 @@ public class SecuritiesCandlesDao {
 
     @Transactional
     public <T, S extends Flux<T>> S findAllByBeginAtAndSecurity(RequestParamSecuritiesCandles request) {
+        log.info("fetch candles from db. start:{} finish:{}", request.getFrom(), request.getTill());
         return switch (Objects.requireNonNull(Interval.valueOf(request.getInterval()))) {
             case M1 -> (S) securitiesCandlesM1Repository.findAllByBeginAtAndSecurity(
                     request.getFrom(),

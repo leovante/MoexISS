@@ -14,12 +14,12 @@ import ru.exdata.moex.handler.SecuritiesHandler;
 
 @Validated
 @RequiredArgsConstructor
-@Controller("/iss/securities")
+@Controller("/iss")
 public class SecuritiesRouter {
 
     private final SecuritiesHandler securitiesService;
 
-    @Get
+    @Get("/securities")
     @Status(HttpStatus.OK)
     public Flux<Object[]> getSecurities(@Valid @RequestBean RequestParamSecurities request) {
         return securitiesService.fetch(request);

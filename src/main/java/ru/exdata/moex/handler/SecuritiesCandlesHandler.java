@@ -9,6 +9,7 @@ import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.SecuritiesCandlesDao;
 import ru.exdata.moex.db.entity.SecuritiesCandlesAbstract;
 import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
+import ru.exdata.moex.dto.candles.Data;
 import ru.exdata.moex.dto.candles.Document;
 import ru.exdata.moex.dto.candles.Row;
 import ru.exdata.moex.handler.client.SecuritiesCandlesApiClient;
@@ -17,6 +18,7 @@ import ru.exdata.moex.mapper.SecuritiesCandlesMapper;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -42,7 +44,7 @@ public class SecuritiesCandlesHandler {
         return Flux.defer(() ->
                         securitiesCandlesDao
                                 .findAllByBeginAtAndSecurity(request)
-                                .map(it -> SecuritiesCandlesMapper.fromEntityToArrSecuritiesCandles((SecuritiesCandlesAbstract) it)))
+                                .map(it -> SecuritiesCandlesMapper.fromEntityToDtoCandles((SecuritiesCandlesAbstract) it)))
                 .switchIfEmpty(fetchAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
                                     holidayService.incrementDay(request);
@@ -57,11 +59,10 @@ public class SecuritiesCandlesHandler {
     private Flux<Row> fetchAndSave(RequestParamSecuritiesCandles request) {
         PageNumber pageNumber = new PageNumber();
         return Flux.defer(() -> fetchPageable(request, pageNumber)
-//                        .map(SecuritiesCandlesMapper::fromDtoToArrSecuritiesCandles)
-                                .parallel()
-                                .runOn(Schedulers.boundedElastic())
-                                .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe())
-                                .sequential()
+                        .parallel()
+                        .runOn(Schedulers.boundedElastic())
+                        .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe())
+                        .sequential()
                 )
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> pageNumber.get() > 0));
     }
@@ -88,7 +89,7 @@ public class SecuritiesCandlesHandler {
                 .switchIfEmpty(Mono.defer(() -> {
                     pageNumber.stop();
                     holidayService.alignDays(request);
-                    return Mono.fromCallable(Document::new).delayElement(Duration.ofSeconds(10L));
+                    return Mono.fromCallable(() -> new Document(new Data(List.of(new Row())))).delayElement(Duration.ofSeconds(10L));
                 }))
                 .flatMapIterable(it -> it.getData().getRows())
                 ;

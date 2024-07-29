@@ -13,12 +13,12 @@ import ru.exdata.moex.handler.SecuritiesCandlesHandler;
 
 @Validated
 @RequiredArgsConstructor
-@Controller("/iss/engines/stock/markets/shares/securities")
+@Controller("/iss")
 public class SecuritiesCandlesRouter {
 
     private final SecuritiesCandlesHandler securitiesCandlesHandler;
 
-    @Get("/{security}/candles")
+    @Get("/engines/stock/markets/shares/securities/{security}/candles")
     @Produces(MediaType.APPLICATION_JSON_STREAM)
     @Status(HttpStatus.OK)
     public Flux<Row> getSecuritiesTrades(@Valid @RequestBean RequestParamSecuritiesCandles request) {

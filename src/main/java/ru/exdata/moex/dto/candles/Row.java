@@ -1,11 +1,14 @@
 package ru.exdata.moex.dto.candles;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -27,8 +30,10 @@ public class Row {
     @JacksonXmlProperty(isAttribute = true, localName = "volume")
     private Double volume;
     @JacksonXmlProperty(isAttribute = true, localName = "begin")
-    private String begin;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime begin;
     @JacksonXmlProperty(isAttribute = true, localName = "end")
-    private String end;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime end;
 
 }

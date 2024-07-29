@@ -84,7 +84,7 @@ public class HolidayService {
     }
 
     void incrementDay(GeneralRequest request) {
-        request.setFrom(request.getTill().plusDays(1L));
+        request.setFrom(request.getFrom().plusDays(1L));
     }
 
     void weekendsIncrement(GeneralRequest request, AtomicReference<LocalDate> from) {

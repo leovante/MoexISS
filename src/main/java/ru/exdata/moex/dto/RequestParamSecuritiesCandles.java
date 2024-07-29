@@ -28,6 +28,8 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
 
     @PathVariable
     private String security;
+    @PathVariable
+    private String board;
     @Format(FORMAT_DATE)
     @QueryValue
     private LocalDate from;
