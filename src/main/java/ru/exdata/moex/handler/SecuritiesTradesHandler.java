@@ -74,12 +74,12 @@ public class SecuritiesTradesHandler {
     private Consumer<SecuritiesTradesDto> pagePaginator(RequestParamSecuritiesTrades request, PageNumber pageNumber) {
         return it -> {
             var firstName = it.getSecuritiesTrades().getData();
-            log.debug("SecuritiesTrades: " + firstName.get(0)[1]);
+            log.debug("request to securities trades moex api: " + firstName.get(0)[1]);
             if (it.getSecuritiesTrades().getData().size() < MOEX_RESPONSE_MAX_ROW) {
                 pageNumber.increment(it.getSecuritiesTrades().getData().size());
             } else {
                 pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
-                log.debug("pageNumber: " + pageNumber.get());
+                log.debug("page number: " + pageNumber.get());
             }
         };
     }

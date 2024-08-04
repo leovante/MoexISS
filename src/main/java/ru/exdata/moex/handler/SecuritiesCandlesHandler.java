@@ -16,9 +16,9 @@ import ru.exdata.moex.handler.client.SecuritiesCandlesApiClient;
 import ru.exdata.moex.handler.model.PageNumber;
 import ru.exdata.moex.mapper.SecuritiesCandlesMapper;
 
-import java.time.Duration;
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -59,11 +59,9 @@ public class SecuritiesCandlesHandler {
     private Flux<Row> fetchAndSave(RequestParamSecuritiesCandles request) {
         PageNumber pageNumber = new PageNumber();
         return Flux.defer(() -> fetchPageable(request, pageNumber)
-                        .parallel()
-                        .runOn(Schedulers.boundedElastic())
-                        .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe())
-                        .sequential()
+                        .doOnNext(it -> securitiesCandlesDao.save(it, request))
                 )
+                .subscribeOn(Schedulers.boundedElastic())
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> pageNumber.get() > 0));
     }
 
@@ -75,23 +73,27 @@ public class SecuritiesCandlesHandler {
                         String.valueOf(pageNumber.get()),
                         request.getInterval())
                 .filter(it -> !it.getData().getRows().isEmpty())
+                .doOnNext(it -> holidayService.saveMissingDatesCandlesBackground(it, request.getFrom(), request.getSecurity(), request.getBoard()))
                 .doOnNext(it -> {
-                    var firstName = it.getData().getRows();
-                    log.debug("SecuritiesHistory: " + firstName.get(0).getBegin());
+                    var rows = it.getData().getRows();
+                    log.debug("request to securities candles moex api: {}, rows size: {}", rows.get(0).getBegin(), rows.size());
                     if (it.getData().getRows().size() < MOEX_RESPONSE_MAX_ROW) {
                         pageNumber.stop();
                         holidayService.alignDays(request);
                     } else {
                         pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
-                        log.debug("pageNumber: " + pageNumber.get());
+                        log.debug("page number: " + pageNumber.get());
                     }
                 })
                 .switchIfEmpty(Mono.defer(() -> {
                     pageNumber.stop();
                     holidayService.alignDays(request);
-                    return Mono.fromCallable(() -> new Document(new Data(List.of(new Row())))).delayElement(Duration.ofSeconds(10L));
+                    return Mono.empty();
                 }))
-                .flatMapIterable(it -> it.getData().getRows())
+                .flatMapIterable(it -> Optional.of(it)
+                        .map(Document::getData)
+                        .map(Data::getRows)
+                        .orElse(Collections.emptyList()))
                 ;
     }
 
@@ -99,17 +101,17 @@ public class SecuritiesCandlesHandler {
         if (request.getFrom() == null) {
             throw new RuntimeException("Ошибка валидатора запроса. значение from не должно быть null {Например: 2024-06-25}");
         }
+        if (request.getTill() != null && request.getTill().isAfter(LocalDate.now())) {
+            throw new RuntimeException("Ошибка валидатора запроса. till should be before now");
+        }
         if (request.getTill() == null) {
-            throw new RuntimeException("Ошибка валидатора запроса. значение till не должно быть null {Например: 2024-06-25}");
+            request.setTill(LocalDate.now());
         }
         if (request.getSecurity() == null) {
             throw new RuntimeException("Ошибка валидатора запроса. значение security не должно быть null {Например: SBER}");
         }
-        if (request.getSecurity().length() != 4) {
-            throw new RuntimeException("Ошибка валидатора запроса. длина security должна быть = 4");
-        }
-        if (request.getTill().isAfter(LocalDate.now())) {
-            throw new RuntimeException("Ошибка валидатора запроса. till should be before now");
+        if (request.getSecurity().length() < 4 || request.getSecurity().length() > 5) {
+            throw new RuntimeException("Ошибка валидатора запроса. длина security должна быть = 4 или 5 символов");
         }
         if (!Set.of(1, 10, 60, 24, 7, 31).contains(request.getInterval())) {
             throw new RuntimeException("Ошибка валидатора запроса. Interval should be eq = 1,10,60,24,7,31");

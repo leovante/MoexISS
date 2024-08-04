@@ -1,6 +1,7 @@
 package ru.exdata.moex.dto;
 
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.convert.format.Format;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.QueryValue;
@@ -20,9 +21,10 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
 
     private final static String FORMAT_DATE = "yyyy-MM-dd";
 
-    public RequestParamSecuritiesCandles(String security, LocalDate from, LocalDate till, Integer interval) {
+    public RequestParamSecuritiesCandles(String security, String board, LocalDate from, LocalDate till, Integer interval) {
         super();
         this.security = security;
+        this.board = board;
         this.from = from;
         this.till = till;
         this.interval = interval;
@@ -37,6 +39,7 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
     private LocalDate from;
     @Format(FORMAT_DATE)
     @QueryValue
+    @Nullable
     private LocalDate till;
     @QueryValue
     private Integer interval;

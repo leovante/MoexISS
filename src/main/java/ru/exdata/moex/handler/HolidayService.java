@@ -8,6 +8,7 @@ import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.SecuritiesHolidayDao;
 import ru.exdata.moex.db.entity.SecuritiesHoliday;
 import ru.exdata.moex.dto.GeneralRequest;
+import ru.exdata.moex.dto.candles.Document;
 import ru.exdata.moex.dto.history.SecuritiesHistoryDto;
 import ru.exdata.moex.mapper.SecuritiesHistoryMapper;
 
@@ -24,9 +25,9 @@ public class HolidayService {
 
     private final SecuritiesHolidayDao securitiesHolidayDao;
 
-    void saveMissingDatesBackground(SecuritiesHistoryDto dto, LocalDate fromDate) {
+    void saveMissingDatesHistoryBackground(SecuritiesHistoryDto dto, LocalDate fromDate) {
         Flux.just(dto)
-                .parallel(3)
+                .parallel()
                 .runOn(Schedulers.boundedElastic())
                 .sequential()
                 .doOnNext(it ->
@@ -49,6 +50,42 @@ public class HolidayService {
                                 entity.setTradeDate(dataToSave);
                                 return entity;
                             });
+                            return second;
+                        }).subscribe()
+                ).subscribe();
+    }
+
+    void saveMissingDatesCandlesBackground(Document dto, LocalDate from, String secId, String board) {
+        Flux.just(dto)
+                .parallel()
+                .runOn(Schedulers.boundedElastic())
+                .sequential()
+                .doOnNext(it ->
+                        Optional.ofNullable(dto.getData().getRows())
+                                .map(map -> map.get(0))
+                                .ifPresent(firstDto -> saveMissingDates(
+                                        from,
+                                        firstDto.getBegin().toLocalDate(),
+                                        LocalDate::isEqual, dataToSave -> {
+                                            var entity = new SecuritiesHoliday();
+                                            entity.setSecId(secId);
+                                            entity.setBoardId(board);
+                                            entity.setTradeDate(dataToSave);
+                                            return entity;
+                                        })))
+                .doOnNext(it -> Flux.fromIterable(dto.getData().getRows())
+                        .reduce((first, second) -> {
+                            saveMissingDates(
+                                    first.getBegin().toLocalDate(),
+                                    second.getBegin().toLocalDate(),
+                                    (excl, frst) -> !excl.isEqual(frst),
+                                    dataToSave -> {
+                                        var entity = new SecuritiesHoliday();
+                                        entity.setSecId(secId);
+                                        entity.setBoardId(board);
+                                        entity.setTradeDate(dataToSave);
+                                        return entity;
+                                    });
                             return second;
                         }).subscribe()
                 ).subscribe();

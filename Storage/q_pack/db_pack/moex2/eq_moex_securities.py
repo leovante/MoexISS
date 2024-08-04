@@ -27,3 +27,11 @@ class DataProviderClient:
             self.logger.error("error fetching securities", exp)
             raise HTTPException(status_code=500, detail="error fetching securities from dataprovider")
         self.logger.info(f"fetched {res_json.__len__():d} securities")
+
+
+def main():
+    DataProviderClient().get_securities()
+
+
+if __name__ == "__main__":
+    main()

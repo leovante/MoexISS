@@ -50,13 +50,13 @@ public class SecuritiesHandler {
                 .filter(it -> !it.getData().getRows().isEmpty())
                 .doOnNext(it -> {
                     var firstName = it.getData();
-                    log.debug("Securities: " + firstName.getRows().get(0).getSecId());
+                    log.debug("request to securities moex api: " + firstName.getRows().get(0).getSecId());
                     if (request.getLimit() <= MOEX_RESPONSE_MAX_ROW) {
                         pageNumber.increment(request.getLimit());
-                        log.debug("pageNumber: " + pageNumber.get());
+                        log.debug("page number: " + pageNumber.get());
                     } else {
                         pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
-                        log.debug("pageNumber: " + pageNumber.get());
+                        log.debug("page number: " + pageNumber.get());
                     }
                 })
                 .switchIfEmpty(Mono.defer(() -> {

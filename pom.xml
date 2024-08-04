@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>ru.ex-data</groupId>
-    <artifactId>moex2</artifactId>
+    <artifactId>moex-iss</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -194,82 +194,82 @@
     </dependencies>
 
     <profiles>
-    <profile>
-        <id>application</id>
-        <activation>
-            <activeByDefault>true</activeByDefault>
-        </activation>
-        <build>
-            <plugins>
-                <plugin>
-                    <groupId>io.micronaut.maven</groupId>
-                    <artifactId>micronaut-maven-plugin</artifactId>
-                </plugin>
-                <plugin>
-                    <!-- Build an executable JAR -->
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.1.0</version>
-                    <configuration>
-                        <archive>
-                            <manifest>
-                                <addClasspath>true</addClasspath>
-                                <classpathPrefix>lib/</classpathPrefix>
-                                <mainClass>ru.exdata.moex.MicronautApp</mainClass>
-                            </manifest>
-                        </archive>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.13.0</version>
-                    <configuration>
-                        <excludes>
-                            <exclude>**src/main/java/benchmark/*.*</exclude>
-                        </excludes>
-                        <annotationProcessorPaths combine.children="override">
-                            <path>
-                                <groupId>org.projectlombok</groupId>
-                                <artifactId>lombok</artifactId>
-                                <version>${lombok.version}</version>
-                            </path>
-                            <path>
-                                <groupId>io.micronaut</groupId>
-                                <artifactId>micronaut-inject-java</artifactId>
-                                <version>${micronaut.version}</version>
-                            </path>
-                            <path>
-                                <groupId>io.micronaut.data</groupId>
-                                <artifactId>micronaut-data-processor</artifactId>
-                                <version>${micronaut.data.version}</version>
-                            </path>
-                            <dependency>
-                                <groupId>io.micronaut.validation</groupId>
-                                <artifactId>micronaut-validation-processor</artifactId>
-                                <version>${micronaut.validation.version}</version>
-                            </dependency>
-                            <!--<path>
-                                <groupId>io.micronaut.serde</groupId>
-                                <artifactId>micronaut-serde-processor</artifactId>
-                                <version>${micronaut.serde.version}</version>
-                            </path>
-                            <path>
-                                <groupId>org.mapstruct</groupId>
-                                <artifactId>mapstruct-processor</artifactId>
-                                <version>${mapstruct.version}</version>
-                            </path>-->
-                        </annotationProcessorPaths>
-                        <!--<compilerArgs>
-                            <compilerArg>
-                                -Amapstruct.defaultComponentModel=spring
-                            </compilerArg>
-                        </compilerArgs>-->
-                    </configuration>
-                </plugin>
-            </plugins>
-        </build>
-    </profile>
+        <profile>
+            <id>application</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.micronaut.maven</groupId>
+                        <artifactId>micronaut-maven-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <!-- Build an executable JAR -->
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <addClasspath>true</addClasspath>
+                                    <classpathPrefix>lib/</classpathPrefix>
+                                    <mainClass>ru.exdata.moex.MicronautApp</mainClass>
+                                </manifest>
+                            </archive>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.13.0</version>
+                        <configuration>
+                            <excludes>
+                                <exclude>**src/main/java/benchmark/*.*</exclude>
+                            </excludes>
+                            <annotationProcessorPaths combine.children="override">
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                    <version>${lombok.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>io.micronaut</groupId>
+                                    <artifactId>micronaut-inject-java</artifactId>
+                                    <version>${micronaut.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>io.micronaut.data</groupId>
+                                    <artifactId>micronaut-data-processor</artifactId>
+                                    <version>${micronaut.data.version}</version>
+                                </path>
+                                <dependency>
+                                    <groupId>io.micronaut.validation</groupId>
+                                    <artifactId>micronaut-validation-processor</artifactId>
+                                    <version>${micronaut.validation.version}</version>
+                                </dependency>
+                                <!--<path>
+                                    <groupId>io.micronaut.serde</groupId>
+                                    <artifactId>micronaut-serde-processor</artifactId>
+                                    <version>${micronaut.serde.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>org.mapstruct</groupId>
+                                    <artifactId>mapstruct-processor</artifactId>
+                                    <version>${mapstruct.version}</version>
+                                </path>-->
+                            </annotationProcessorPaths>
+                            <!--<compilerArgs>
+                                <compilerArg>
+                                    -Amapstruct.defaultComponentModel=spring
+                                </compilerArg>
+                            </compilerArgs>-->
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
 </project>

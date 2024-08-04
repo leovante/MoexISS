@@ -76,10 +76,10 @@ public class SecuritiesHistoryHandler {
                         null)
                 .filter(it -> it.getSecuritiesHistory().getColumns().length == 23)
                 .filter(it -> !it.getSecuritiesHistory().getData().isEmpty())
-                .doOnNext(it -> holidayService.saveMissingDatesBackground(it, fromDate.get()))
+                .doOnNext(it -> holidayService.saveMissingDatesHistoryBackground(it, fromDate.get()))
                 .doOnNext(it -> {
                     var firstName = it.getSecuritiesHistory().getData();
-                    log.debug("SecuritiesHistory: " + firstName.get(0)[1]);
+                    log.debug("request to securities history moex api: " + firstName.get(0)[1]);
                     if (request.getDuration().toDays() == 0 || it.getSecuritiesHistory().getData().size() == request.getDuration().toDays()) {
                         pageNumber.stop();
                         holidayService.alignDays(request.getTill(), fromDate);
@@ -92,7 +92,7 @@ public class SecuritiesHistoryHandler {
                         var mapped = SecuritiesHistoryMapper.fromArrToEntity(linked.getLast());
                         holidayService.incrementDay(fromDate, mapped.getTradeDate().plusDays(1L));
                         pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
-                        log.debug("pageNumber: " + pageNumber.get());
+                        log.debug("page number: " + pageNumber.get());
                     }
                 })
                 .flatMapIterable(it -> it.getSecuritiesHistory().getData());
@@ -103,17 +103,17 @@ public class SecuritiesHistoryHandler {
         if (request.getFrom() == null) {
             throw new RuntimeException("Ошибка валидатора запроса. значение from не должно быть null {Например: 2024-06-25}");
         }
+        if (request.getTill() != null && request.getTill().isAfter(LocalDate.now())) {
+            throw new RuntimeException("Ошибка валидатора запроса. till should be before now");
+        }
         if (request.getTill() == null) {
-            throw new RuntimeException("Ошибка валидатора запроса. значение till не должно быть null {Например: 2024-06-25}");
+            request.setTill(LocalDate.now());
         }
         if (request.getSecurity() == null) {
             throw new RuntimeException("Ошибка валидатора запроса. значение security не должно быть null {Например: SBER}");
         }
-        if (request.getSecurity().length() != 4) {
-            throw new RuntimeException("Ошибка валидатора запроса. длина security должна быть = 4");
-        }
-        if (request.getTill().isAfter(LocalDate.now())) {
-            throw new RuntimeException("Ошибка валидатора запроса. till should be before now");
+        if (request.getSecurity().length() < 4 || request.getSecurity().length() > 5) {
+            throw new RuntimeException("Ошибка валидатора запроса. длина security должна быть = 4 или 5 символов");
         }
         /*if (Duration.between(request.getFrom(), request.getTill()).toDays() <= 3 * 365) {
             throw new RuntimeException("Ошибка валидатора запроса. Не более 3-х лет");

@@ -1,0 +1,5 @@
+host = "minio-image"
+port = "9000"
+access_key = "minio-image"
+secret_key = "minio-image-pass"
+bucket_airflow_files = "airflow-files"
