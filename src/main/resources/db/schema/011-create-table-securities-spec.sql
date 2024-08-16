@@ -1,17 +1,19 @@
 --liquibase formatted sql
 --changeset temnikov_do:000-create-table-securities
 
-create table securities_spec (
-    id          BIGSERIAL                   not null
-            constraint securities_spec_pk primary key,
-    sec_id varchar(51) not null,
-    name varchar(189) not null,
-    title varchar(765) not null,
-    valuee varchar(6144) not null,
-    type varchar(21) not null,
-    sort_order bigint not null,
-    is_hidden bigint not null,
-    precisionn bigint
+create table securities_spec
+(
+    id          BIGSERIAL     not null
+        constraint securities_spec_pk primary key,
+    sec_id      varchar(51)   not null,
+    name        varchar(189)  not null,
+    title       varchar(765)  not null,
+    valuee      varchar(6144) not null,
+    type        varchar(21)   not null,
+    sort_order  bigint        not null,
+    is_hidden   bigint        not null,
+    precisionn  bigint,
+    create_date timestamp without time zone not null
 );
 
 comment on table securities_spec is 'спецификация актива';

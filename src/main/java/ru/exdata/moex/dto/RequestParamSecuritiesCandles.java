@@ -33,6 +33,7 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
     @PathVariable
     private String security;
     @PathVariable
+    @Nullable
     private String board;
     @Format(FORMAT_DATE)
     @QueryValue
