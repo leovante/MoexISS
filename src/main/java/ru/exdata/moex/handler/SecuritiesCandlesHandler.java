@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.SecuritiesCandlesDao;
 import ru.exdata.moex.db.entity.SecuritiesCandlesAbstract;
 import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
@@ -59,9 +58,8 @@ public class SecuritiesCandlesHandler {
     private Flux<Row> fetchAndSave(RequestParamSecuritiesCandles request) {
         PageNumber pageNumber = new PageNumber();
         return Flux.defer(() -> fetchPageable(request, pageNumber)
-                        .doOnNext(it -> securitiesCandlesDao.save(it, request))
+                        .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe())
                 )
-                .subscribeOn(Schedulers.boundedElastic())
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> pageNumber.get() > 0));
     }
 
