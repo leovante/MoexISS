@@ -10,6 +10,7 @@ import ru.exdata.moex.db.entity.SecuritiesHoliday;
 import ru.exdata.moex.dto.GeneralRequest;
 import ru.exdata.moex.dto.candles.Document;
 import ru.exdata.moex.dto.history.SecuritiesHistoryDto;
+import ru.exdata.moex.enums.Board;
 import ru.exdata.moex.mapper.SecuritiesHistoryMapper;
 
 import java.time.LocalDate;
@@ -55,7 +56,8 @@ public class HolidayService {
                 ).subscribe();
     }
 
-    void saveMissingDatesCandlesBackground(Document dto, LocalDate from, String secId, String board) {
+    void saveMissingDatesCandlesBackground(Document dto, LocalDate start, String secId, String board) {
+        String boardId = board == null ? Board.TQBR.value : board;
         Flux.just(dto)
                 .parallel()
                 .runOn(Schedulers.boundedElastic())
@@ -64,12 +66,12 @@ public class HolidayService {
                         Optional.ofNullable(dto.getData().getRows())
                                 .map(map -> map.get(0))
                                 .ifPresent(firstDto -> saveMissingDates(
-                                        from,
+                                        start,
                                         firstDto.getBegin().toLocalDate(),
                                         LocalDate::isEqual, dataToSave -> {
                                             var entity = new SecuritiesHoliday();
                                             entity.setSecId(secId);
-                                            entity.setBoardId(board);
+                                            entity.setBoardId(boardId);
                                             entity.setTradeDate(dataToSave);
                                             return entity;
                                         })))
@@ -82,7 +84,7 @@ public class HolidayService {
                                     dataToSave -> {
                                         var entity = new SecuritiesHoliday();
                                         entity.setSecId(secId);
-                                        entity.setBoardId(board);
+                                        entity.setBoardId(boardId);
                                         entity.setTradeDate(dataToSave);
                                         return entity;
                                     });
@@ -120,19 +122,29 @@ public class HolidayService {
         from.set(from.get().plusDays(1L));
     }
 
-    void incrementDay(GeneralRequest request) {
+    void incrementFromOneDay(GeneralRequest request) {
         request.setFrom(request.getFrom().plusDays(1L));
     }
 
-    void weekendsIncrement(GeneralRequest request, AtomicReference<LocalDate> from) {
+    void decrementTillOneDay(GeneralRequest request) {
+        request.setTill(request.getTill().minusDays(1L));
+    }
+
+    void weekendsIncrementFromOneDay(GeneralRequest request, AtomicReference<LocalDate> from) {
         while (isWeekends(from.get()) || hasHolidayGap(request, from.get())) {
             from.set(from.get().plusDays(1L));
         }
     }
 
-    void weekendsIncrement(GeneralRequest request) {
+    void weekendsIncrementFromOneDay(GeneralRequest request) {
         while (isWeekends(request.getFrom()) || hasHolidayGap(request, request.getFrom())) {
             request.setFrom(request.getFrom().plusDays(1L));
+        }
+    }
+
+    void weekendsDecrementTillOneDay(GeneralRequest request) {
+        while (isWeekends(request.getTill()) || hasHolidayGap(request, request.getTill())) {
+            request.setTill(request.getTill().minusDays(1L));
         }
     }
 
@@ -141,10 +153,10 @@ public class HolidayService {
                 || date.getDayOfWeek().getValue() == 7;
     }
 
-    private boolean hasHolidayGap(GeneralRequest request, LocalDate from) {
+    private boolean hasHolidayGap(GeneralRequest request, LocalDate date) {
         return Boolean.TRUE.equals(securitiesHolidayDao.findByBoardIdAndTradeDateAndSecId(
-                        request.getBoard() == null ? "TQBR" : request.getBoard(),
-                        from,
+                        request.getBoard() == null ? Board.TQBR.value : request.getBoard(),
+                        date,
                         request.getSecurity())
                 .hasElement().subscribe());
     }

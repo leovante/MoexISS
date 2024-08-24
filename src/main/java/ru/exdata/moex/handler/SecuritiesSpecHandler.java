@@ -4,6 +4,7 @@ import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.exdata.moex.db.dao.SecuritiesSpecDao;
 import ru.exdata.moex.dto.securitiesSpec.Data;
 import ru.exdata.moex.dto.securitiesSpec.DataDescription;
@@ -25,15 +26,11 @@ public class SecuritiesSpecHandler {
     private final SecuritiesSpecDao securitiesSpecDao;
 
     public Flux<Row> fetchBySecId(String secId) {
-        if (secId == null) {
-            return Flux.empty();
-        }
-        return securitiesSpecDao.findBySecId(secId)
-                .map(SecuritiesSpecMapper::fromEntityToDto)
-                .switchIfEmpty(
-                        fetchSecurities(secId)
-                                .doOnNext(it -> securitiesSpecDao.save(it, secId).subscribe())
-                );
+        return Mono.just(secId)
+                .flatMapMany(id -> Flux.from(securitiesSpecDao.findBySecId(id))
+                        .map(SecuritiesSpecMapper::fromEntityToDto)
+                        .switchIfEmpty(fetchSecurities(id)
+                                .doOnNext(it -> securitiesSpecDao.save(it, id).subscribe())));
     }
 
     private Flux<Row> fetchSecurities(String secId) {

@@ -24,6 +24,7 @@ public class SecuritiesHandler {
     private final SecuritiesApiClient securitiesApiClient;
     private final SecuritiesDao securitiesDao;
     private final int MOEX_RESPONSE_MAX_ROW = 100;
+//    private final EmitterProcessor<Boolean> shutdown = EmitterProcessor.create();
 
     public Flux<Row> fetch(RequestParamSecurities request) {
         validateRequest(request);
@@ -47,10 +48,10 @@ public class SecuritiesHandler {
                         request.getQ(),
                         String.valueOf(request.getLimit()),
                         request.getIssOnly())
+                .doOnError(e -> new Exception(e.getMessage()))
                 .filter(it -> !it.getData().getRows().isEmpty())
-                .doOnNext(it -> {
-                    var firstName = it.getData();
-                    log.debug("request to securities moex api: " + firstName.getRows().get(0).getSecId());
+                .doOnNext(c -> log.debug("request to securities moex api: " + c.getData().getRows().get(0).getSecId()))
+                .map(it -> {
                     if (request.getLimit() <= MOEX_RESPONSE_MAX_ROW) {
                         pageNumber.increment(request.getLimit());
                         log.debug("page number: " + pageNumber.get());
@@ -58,10 +59,12 @@ public class SecuritiesHandler {
                         pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
                         log.debug("page number: " + pageNumber.get());
                     }
+                    return it;
                 })
+//                .takeUntilOther(shutdown)
                 .switchIfEmpty(Mono.defer(() -> {
                     pageNumber.stop();
-                    return Mono.empty();
+                    return Mono.never();
                 }))
                 .flatMapIterable(it -> it.getData().getRows())
                 ;

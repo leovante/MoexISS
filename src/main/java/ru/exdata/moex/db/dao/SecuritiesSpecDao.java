@@ -31,14 +31,10 @@ public class SecuritiesSpecDao {
             return Flux.empty();
         }
         var sec = SecuritiesSpecMapper.fromDtoToEntity(dto, secId);
-        return securitiesSpecRepository
-                .findBySecIdAndName(sec.getSecId(), sec.getName())
-                .flatMap(it -> Flux.just(it)
-                        .filter(element -> !element.getValuee().equalsIgnoreCase(sec.getValuee()))
-                        .doOnNext(element -> securitiesSpecRepository.delete(it)
-                                .then(securitiesSpecRepository.save(sec))
-                                .then())
-                )
+        return Flux.from(securitiesSpecRepository.findBySecIdAndName(secId, dto.getName()))
+                .filter(element -> !element.getValuee().equalsIgnoreCase(sec.getValuee()))
+                .flatMap(element -> securitiesSpecRepository.delete(element)
+                        .then(securitiesSpecRepository.save(sec)))
                 .switchIfEmpty(securitiesSpecRepository.save(sec));
     }
 

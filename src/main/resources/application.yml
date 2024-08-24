@@ -3,6 +3,30 @@ micronaut:
     name: moex2
   server:
     port: ${APP_PORT}
+    netty:
+      worker:
+        threads: 1
+      parent:
+        threads: 1
+      childOptions:
+        autoRead: true
+  http:
+    client:
+      pool:
+        acquire-timeout: 1000ms
+        max-pending-acquires: 1000
+        enabled: true
+        max-connections: 5
+    services:
+      moex:
+        url: https://iss.moex.com
+        read-timeout: 60s
+        pool:
+          max-concurrent-http1-connections: 50
+          enabled: true
+          max-connections: 50
+  http.client.ssl.insecure-trust-all-certificates: true
+
 datasources:
   liquibase:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
@@ -29,8 +53,8 @@ liquibase:
       enabled: true
       change-log: 'classpath:db/changelog-master.xml'
 
-micronaut.http.services.moex.url: https://iss.moex.com
-micronaut.http.client.ssl.insecure-trust-all-certificates: true
+app:
+  resourceLockTimeout: 10000
 
 logger:
   levels:

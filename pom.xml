@@ -155,7 +155,12 @@
             <artifactId>jcl-over-slf4j</artifactId>
             <version>1.7.32</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>30.0-jre</version>
+        </dependency>
+        
         <!-- test -->
         <dependency>
             <groupId>org.jsoup</groupId>

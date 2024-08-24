@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import ru.exdata.moex.db.entity.SecuritiesHoliday;
 import ru.exdata.moex.db.repository.SecuritiesHolidayRepository;
+import ru.exdata.moex.enums.Board;
 
 import java.time.LocalDate;
 
@@ -27,7 +28,7 @@ public class SecuritiesHolidayDao {
         }
         return securitiesHolidayRepository
                 .findByBoardIdAndTradeDateAndSecId(
-                        entity.getBoardId(),
+                        entity.getBoardId() == null ? Board.TQBR.value : entity.getBoardId(),
                         entity.getTradeDate(),
                         entity.getSecId())
                 .switchIfEmpty(securitiesHolidayRepository.save(entity));

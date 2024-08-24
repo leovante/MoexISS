@@ -17,5 +17,6 @@
     <include file="schema/009-create-table-securities-candles-d7.sql" relativeToChangelogFile="true"/>
     <include file="schema/010-create-table-securities-candles-d31.sql" relativeToChangelogFile="true"/>
     <include file="schema/011-create-table-securities-spec.sql" relativeToChangelogFile="true"/>
+    <include file="schema/012-create-table-resource-lock.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

@@ -32,7 +32,7 @@ public class SecuritiesHistoryHandler {
 
     public Flux<Object[]> fetch(RequestParamSecuritiesHistory request) {
         AtomicReference<LocalDate> fromDate = new AtomicReference<>(request.getFrom());
-        holidayService.weekendsIncrement(request, fromDate);
+        holidayService.weekendsIncrementFromOneDay(request, fromDate);
         validateRequest(request);
         return fetchRepo(request, fromDate);
     }
@@ -48,7 +48,7 @@ public class SecuritiesHistoryHandler {
                 .switchIfEmpty(fetchAndSave(request, fromDate))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
                                     holidayService.incrementDay(fromDate);
-                                    holidayService.weekendsIncrement(request, fromDate);
+                                    holidayService.weekendsIncrementFromOneDay(request, fromDate);
                                     return (fromDate.get().isBefore(request.getTill()) || fromDate.get().isEqual(request.getTill()))
                                             && fromDate.get().isBefore(LocalDate.now());
                                 }

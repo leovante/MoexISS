@@ -4,15 +4,13 @@ import io.micronaut.core.annotation.Introspected;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.serde.annotation.Serdeable;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @EqualsAndHashCode(callSuper = false)
 @Introspected(excludes = "duration")
 @Serdeable
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class RequestParamSecurities extends GeneralRequest {

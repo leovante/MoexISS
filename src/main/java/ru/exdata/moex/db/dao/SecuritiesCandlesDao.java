@@ -11,9 +11,9 @@ import ru.exdata.moex.db.repository.*;
 import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
 import ru.exdata.moex.dto.candles.Row;
 import ru.exdata.moex.enums.Interval;
-import ru.exdata.moex.mapper.MapperUtils;
 import ru.exdata.moex.mapper.SecuritiesCandlesMapper;
 
+import java.time.LocalDate;
 import java.util.Objects;
 
 @Slf4j
@@ -29,27 +29,27 @@ public class SecuritiesCandlesDao {
     private final SecuritiesCandlesD31Repository securitiesCandlesD31Repository;
 
     @Transactional
-    public <T, S extends Flux<T>> S findAllByBeginAtAndSecurity(RequestParamSecuritiesCandles request) {
-        log.info("fetch candles from db. start:{} finish:{}", request.getFrom(), request.getTill());
-        return switch (Objects.requireNonNull(Interval.valueOf(request.getInterval()))) {
+    public <T, S extends Flux<T>> S findAllByBeginAtAndSecurity(LocalDate date, Integer interval, String security) {
+        log.info("fetch candles from db. start:{}", date);
+        return switch (Objects.requireNonNull(Interval.valueOf(interval))) {
             case M1 -> (S) securitiesCandlesM1Repository.findAllByBeginAtAndSecurity(
-                    request.getFrom(),
-                    request.getSecurity());
+                    date,
+                    security);
             case M10 -> (S) securitiesCandlesM10Repository.findAllByBeginAtAndSecurity(
-                    request.getFrom(),
-                    request.getSecurity());
+                    date,
+                    security);
             case M60 -> (S) securitiesCandlesM60Repository.findAllByBeginAtAndSecurity(
-                    request.getFrom(),
-                    request.getSecurity());
+                    date,
+                    security);
             case D1 -> (S) securitiesCandlesD1Repository.findAllByBeginAtAndSecurity(
-                    request.getFrom(),
-                    request.getSecurity());
+                    date,
+                    security);
             case D7 -> (S) securitiesCandlesD7Repository.findAllByBeginAtAndSecurity(
-                    request.getFrom(),
-                    request.getSecurity());
+                    date,
+                    security);
             case D31 -> (S) securitiesCandlesD31Repository.findAllByBeginAtAndSecurity(
-                    request.getFrom(),
-                    request.getSecurity());
+                    date,
+                    security);
             default -> throw new RuntimeException("Not defined time frame");
         };
     }

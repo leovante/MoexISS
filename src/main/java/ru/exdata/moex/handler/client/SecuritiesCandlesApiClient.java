@@ -17,12 +17,14 @@ import static io.micronaut.http.HttpHeaders.USER_AGENT;
 @Header(name = ACCEPT, value = MediaType.APPLICATION_XML)
 public interface SecuritiesCandlesApiClient {
 
-    @Get("/iss/engines/stock/markets/shares/securities/{security}/candles")
+    @Get("/iss/engines/stock/markets/shares/securities/{security}/candles?iss.reverse={reverse}")
     @SingleResult
     Mono<Document> fetch(@QueryValue String security,
                          @QueryValue String from,
                          @QueryValue String till,
                          @QueryValue(defaultValue = "0") String start,
-                         @QueryValue Integer interval);
+                         @QueryValue Integer interval,
+                         Boolean reverse
+    );
 
 }
