@@ -5,9 +5,8 @@ import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.r2dbc.operations.R2dbcOperations;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
-import jakarta.validation.ConstraintViolationException;
+import io.r2dbc.spi.R2dbcDataIntegrityViolationException;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -24,6 +23,7 @@ import ru.exdata.moex.utils.lock.SynchronizedResource;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -33,14 +33,13 @@ public class CrossTransactionalDBLockService implements LockService {
     private final R2dbcOperations r2dbcOperations;
 
     @Override
-    public ResourceLock acquireLock(SynchronizedResource resource) {
+    public ResourceLock acquireLock(SynchronizedResource resource) throws ExecutionException, InterruptedException {
         return acquireLock(resource, null);
     }
 
-    @SneakyThrows
     @Override
     public ResourceLock acquireLock(SynchronizedResource resource, LocalDateTime expirationDate)
-            throws LockBusyException {
+            throws LockBusyException, ExecutionException, InterruptedException {
         String resourceName = DefaultAssertions.isNotNull(DefaultAssertions.isNotNull(resource).getLockKey());
         var now = LocalDateTime.now();
         var expire = now.plusHours(1L);
@@ -68,11 +67,12 @@ public class CrossTransactionalDBLockService implements LockService {
                         .then(Mono.from(c.beginTransaction()))
                         .then(Mono.from(c.createStatement(sql).execute())
                                 .flatMap(result -> Mono.from(result.getRowsUpdated())
-                                        .doOnNext(i -> log.info("lock success, locked rows count: " + i)))
+                                        .doOnNext(i -> log.info("lock success, locked rows count: {}, lock name: {}", i, resourceName)))
                                 .onErrorResume(ex -> Mono.from(c.rollbackTransaction())
                                         .then(Mono.from(c.close()))
                                         .then(Mono.error(() -> {
-                                            if (Routines.findException(ex, item -> Routines.isInstanceOf(item, ConstraintViolationException.class)) != null) {
+                                            if (Routines.findException(ex, item -> Routines.isInstanceOf(item,
+                                                    R2dbcDataIntegrityViolationException.class)) != null) {
                                                 return new LockBusyException("Ресурс занят: " + resource);
                                             }
                                             return new RuntimeException("Ошибка получения блокировки ресурса: ", ex);
@@ -81,38 +81,7 @@ public class CrossTransactionalDBLockService implements LockService {
                         ))
                 .toFuture().get();
 
-            /*r2dbcOperations.withTransaction(status ->
-                    Mono.just(status.getConnection())
-                            .flatMap(c -> Mono.from(c.setTransactionIsolationLevel(IsolationLevel.READ_UNCOMMITTED))
-                                            .then(Mono.from(c.setAutoCommit(false)))
-                                            .then(Mono.from(c.beginTransaction()))
-                                            .then(Mono.from(c.createStatement("sql").execute()))
-                                            .flatMap(result -> Mono.from(result.getRowsUpdated()))
-//                                            .then(Mono.from(c.commitTransaction()))
-//                                            .onErrorResume(ex -> Mono.from(c.rollbackTransaction()).then(Mono.error(ex)))
-//                                            .doFinally((st)->c.close()));
-                            ));*/
-//            var sqlPreparedQuery = new DefaultSqlPreparedQuery(sqlPreparedQuery1);
-//            sqlPreparedQuery.prepare(ResourceLockEntity.builder().build());
-//            reactorReactiveRepositoryOperations.persist(sqlPreparedQuery)
-            /*entityManager = entityManagerFactory.createEntityManager();
-            transaction = entityManager.getTransaction();
-            transaction.begin();
-            ResourceLockEntity resourceLockEntity = ResourceLockEntity.builder()
-                    .resourceName(resourceName)
-                    .createDate(LocalDateTime.now())
-                    .expireDate(expirationDate)
-                    .build();
-            entityManager.persist(resourceLockEntity);
-            entityManager.flush();
-           return new CrossTransactionalResourceLock(resourceLockEntity, entityManager, transaction);
-        } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
-            if (entityManager != null) entityManager.close();
-            if (Routines.findException(e, item -> Routines.isInstanceOf(item, ConstraintViolationException.class)) != null) {
-                throw new LockBusyException("Ресурс занят: " + resource);
-            }
-            throw new RuntimeException("Ошибка получения блокировки ресурса: ", e);*/
+
         return new CrossTransactionalResourceLock(resourceLockEntity, cf);
     }
 
@@ -122,25 +91,28 @@ public class CrossTransactionalDBLockService implements LockService {
         return Routines.isEmpty(resourceLockRepository.findByResourceName(resourceName).subscribe());
     }
 
-    @SneakyThrows
     @Override
     public void releaseLock(ResourceLock lock) {
         CrossTransactionalResourceLock resourceLock = Assertions.isInstance(lock, CrossTransactionalResourceLock.class,
                 () -> new LockException("Тип блокировки не поддерживается"));
 
+        var resourceName = resourceLock.getLock().getResourceName();
         String sql = String.format("""
                         delete from resource_lock
                         where resource_name='%s'
                         """,
-                resourceLock.getLock().getResourceName());
+                resourceName);
 
         var cf = resourceLock.getConnection();
         Mono.from(cf)
                 .flatMap(c -> Mono.from(c.createStatement(sql).execute())
+                        .flatMap(result -> Mono.from(result.getRowsUpdated())
+                                .doOnNext(i -> log.info("lock realise success, unlocked rows count: {}, lock name: {}", i, resourceName)))
                         .then(Mono.from(c.commitTransaction()))
                         .doFinally((st) -> Mono.just(c.close()).subscribe())
+                        .log("SecuritiesCandlesSync | releaseLock")
                 )
-                .toFuture().get();
+                .subscribe();
     }
 
     private Timestamp toTimestamp(LocalDateTime localDateTime) {

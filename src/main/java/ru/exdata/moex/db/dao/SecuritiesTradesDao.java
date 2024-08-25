@@ -24,12 +24,14 @@ public class SecuritiesTradesDao {
     public @NonNull Mono<SecuritiesTrades> findLast(RequestParamSecuritiesTrades request) {
         log.info("fetch trades from db. date:now() secId:{}", request.getSecurity());
         return securitiesTradesRepository.findOneBySysTimeAndSecurityOrderByTradeNoDesc(
-                        LocalDate.now().toString(),
-                        request.getSecurity());
+                LocalDate.now().toString(),
+                request.getSecurity());
     }
 
     @Transactional
     public Mono<SecuritiesTrades> save(Object[] dtos) {
+        log.info("save SecuritiesTradesDao to db.");
+
         if (dtos == null || dtos.length == 0) {
             return Mono.just(new SecuritiesTrades());
         }

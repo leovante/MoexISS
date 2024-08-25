@@ -27,19 +27,19 @@ public class SecuritiesSync {
 
     public void sync() {
         log.info("Startup sync securities START");
-        moexSyncDao.findByDataTypeOrderByUpdateDateDesc(SyncTypes.Securities)
+        moexSyncDao.findByDataTypeOrderByUpdateDateDesc(SyncTypes.securities)
                 .doOnNext(c -> log.info(c.toString()))
                 .filter(entity -> entity.getUpdateDate().isAfter(LocalDateTime.now().minus(Duration.ofDays(1L))))
                 .publishOn(Schedulers.boundedElastic())
                 .switchIfEmpty(Mono.defer(() -> {
                     fetchStocks()
                             .doOnNext(it -> fetchSpecs(it.getSecId()).subscribe())
+                            .then(moexSyncDao.save(MoexSync.builder()
+                                    .dataType(SyncTypes.securities.name())
+                                    .build()))
                             .subscribe();
                     return Mono.empty();
                 }))
-                .then(moexSyncDao.save(MoexSync.builder()
-                        .dataType(SyncTypes.Securities.value)
-                        .build()))
                 .subscribe(i -> log.debug("Startup sync securities FINISH"))
         ;
     }

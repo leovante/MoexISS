@@ -29,69 +29,50 @@ public class SecuritiesCandlesDao {
     private final SecuritiesCandlesD31Repository securitiesCandlesD31Repository;
 
     @Transactional
-    public <T, S extends Flux<T>> S findAllByBeginAtAndSecurity(LocalDate date, Integer interval, String security) {
-        log.info("fetch candles from db. start:{}", date);
+    public <T, S extends Flux<T>> S findAllByBeginAtAndSecurity(LocalDate start, Integer interval, String security) {
+        log.info("fetch candles from db. security: {} interval: {} start: {}", security, interval, start);
+
         return switch (Objects.requireNonNull(Interval.valueOf(interval))) {
-            case M1 -> (S) securitiesCandlesM1Repository.findAllByBeginAtAndSecurity(
-                    date,
-                    security);
-            case M10 -> (S) securitiesCandlesM10Repository.findAllByBeginAtAndSecurity(
-                    date,
-                    security);
-            case M60 -> (S) securitiesCandlesM60Repository.findAllByBeginAtAndSecurity(
-                    date,
-                    security);
-            case D1 -> (S) securitiesCandlesD1Repository.findAllByBeginAtAndSecurity(
-                    date,
-                    security);
-            case D7 -> (S) securitiesCandlesD7Repository.findAllByBeginAtAndSecurity(
-                    date,
-                    security);
-            case D31 -> (S) securitiesCandlesD31Repository.findAllByBeginAtAndSecurity(
-                    date,
-                    security);
+            case M1 -> (S) securitiesCandlesM1Repository.findAllByBeginAtAndSecurity(start, security);
+            case M10 -> (S) securitiesCandlesM10Repository.findAllByBeginAtAndSecurity(start, security);
+            case M60 -> (S) securitiesCandlesM60Repository.findAllByBeginAtAndSecurity(start, security);
+            case D1 -> (S) securitiesCandlesD1Repository.findAllByBeginAtAndSecurity(start, security);
+            case D7 -> (S) securitiesCandlesD7Repository.findAllByBeginAtAndSecurity(start, security);
+            case D31 -> (S) securitiesCandlesD31Repository.findAllByBeginAtAndSecurity(start, security);
             default -> throw new RuntimeException("Not defined time frame");
         };
     }
 
     @Transactional
     public <T, S extends Mono<T>> S save(Row row, RequestParamSecuritiesCandles request) {
+        log.info("save candles to db. security: {} interval: {} start: {} finish: {}",
+                request.getSecurity(), request.getInterval(), row.getBegin(), row.getEnd());
+
         if (row == null || row.getBegin() == null || row.getEnd() == null || request.getSecurity() == null) {
             return (S) Mono.just(new SecuritiesCandlesM1());
         }
+
         var begin = row.getBegin();
         var end = row.getEnd();
         return switch (Objects.requireNonNull(Interval.valueOf(request.getInterval()))) {
-            case M1 -> (S) securitiesCandlesM1Repository.findByPk(
-                            request.getSecurity(),
-                            begin,
-                            end)
-                    .switchIfEmpty(securitiesCandlesM1Repository.save(SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesM1())));
-            case M10 -> (S) securitiesCandlesM10Repository.findByPk(
-                            request.getSecurity(),
-                            begin,
-                            end)
-                    .switchIfEmpty(securitiesCandlesM10Repository.save(SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesM10())));
-            case M60 -> (S) securitiesCandlesM60Repository.findByPk(
-                            request.getSecurity(),
-                            begin,
-                            end)
-                    .switchIfEmpty(securitiesCandlesM60Repository.save(SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesM60())));
-            case D1 -> (S) securitiesCandlesD1Repository.findByPk(
-                            request.getSecurity(),
-                            begin,
-                            end)
-                    .switchIfEmpty(securitiesCandlesD1Repository.save(SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesD1())));
-            case D7 -> (S) securitiesCandlesD7Repository.findByPk(
-                            request.getSecurity(),
-                            begin,
-                            end)
-                    .switchIfEmpty(securitiesCandlesD7Repository.save(SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesD7())));
-            case D31 -> (S) securitiesCandlesD31Repository.findByPk(
-                            request.getSecurity(),
-                            begin,
-                            end)
-                    .switchIfEmpty(securitiesCandlesD31Repository.save(SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesD31())));
+            case M1 -> (S) securitiesCandlesM1Repository.findByPk(request.getSecurity(), begin, end)
+                    .switchIfEmpty(securitiesCandlesM1Repository.save(
+                            SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesM1())));
+            case M10 -> (S) securitiesCandlesM10Repository.findByPk(request.getSecurity(), begin, end)
+                    .switchIfEmpty(securitiesCandlesM10Repository.save(
+                            SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesM10())));
+            case M60 -> (S) securitiesCandlesM60Repository.findByPk(request.getSecurity(), begin, end)
+                    .switchIfEmpty(securitiesCandlesM60Repository.save(
+                            SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesM60())));
+            case D1 -> (S) securitiesCandlesD1Repository.findByPk(request.getSecurity(), begin, end)
+                    .switchIfEmpty(securitiesCandlesD1Repository.save(
+                            SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesD1())));
+            case D7 -> (S) securitiesCandlesD7Repository.findByPk(request.getSecurity(), begin, end)
+                    .switchIfEmpty(securitiesCandlesD7Repository.save(
+                            SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesD7())));
+            case D31 -> (S) securitiesCandlesD31Repository.findByPk(request.getSecurity(), begin, end)
+                    .switchIfEmpty(securitiesCandlesD31Repository.save(
+                            SecuritiesCandlesMapper.fromArrToEntity(row, request, new SecuritiesCandlesD31())));
             default -> throw new RuntimeException("Not defined time frame");
         };
     }

@@ -1,13 +1,17 @@
 package ru.exdata.moex.handler.event;
 
-import io.micronaut.transaction.TransactionOperations;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.config.properties.ApplicationConfigAdapter;
+import ru.exdata.moex.db.dao.MoexSyncDao;
+import ru.exdata.moex.db.entity.MoexSync;
 import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
-import ru.exdata.moex.dto.candles.Row;
 import ru.exdata.moex.enums.Interval;
 import ru.exdata.moex.handler.SecuritiesCandlesHandler;
 import ru.exdata.moex.handler.SpecificationsSecuritiesHandler;
@@ -18,6 +22,7 @@ import ru.exdata.moex.utils.lock.LockServiceHelper;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -28,80 +33,87 @@ public class SecuritiesCandlesSync implements LockServiceHelper {
     private final SpecificationsSecuritiesHandler specificationsSecuritiesHandler;
     private final SecuritiesCandlesHandler securitiesCandlesHandler;
     private final LockService lockService;
-    //    private final ApplicationConfigurationProperties configurationProperties;
     private final ApplicationConfigAdapter applicationConfigAdapter;
-    private final TransactionOperations<Object> transactionOperations;
+    private final MoexSyncDao moexSyncDao;
 
     public void sync() {
         log.info("Startup sync securities candles START");
+        Scheduler scheduler1 = Schedulers.newBoundedElastic(1, Integer.MAX_VALUE, "schedulerSecuritiesCandlesSync1");
+        Scheduler scheduler2 = Schedulers.newBoundedElastic(1, Integer.MAX_VALUE, "schedulerSecuritiesCandlesSync2");
+        Scheduler scheduler3 = Schedulers.newBoundedElastic(1, Integer.MAX_VALUE, "schedulerSecuritiesCandlesSync3");
+        Scheduler scheduler4 = Schedulers.newBoundedElastic(1, Integer.MAX_VALUE, "schedulerSecuritiesCandlesSync4");
+        Scheduler scheduler5 = Schedulers.newBoundedElastic(1, Integer.MAX_VALUE, "schedulerSecuritiesCandlesSync5");
+        Scheduler scheduler6 = Schedulers.newBoundedElastic(1, Integer.MAX_VALUE, "schedulerSecuritiesCandlesSync6");
 
-        for (Integer lvl : List.of(1, 2, 3)) {
-            specificationsSecuritiesHandler.fetchByListingLvl(lvl)
-                    .doOnNext(it -> syncProcess(() ->
-                            securitiesCandlesHandler.fetch(
-                                    createRequest(Interval.M1, it.sec_id())), Interval.M1))
-//                    .doOnNext(it -> securitiesCandlesHandler.fetch(createRequest(Interval.M10, it.sec_id())).subscribe())
-//                    .doOnNext(it -> securitiesCandlesHandler.fetch(createRequest(Interval.M60, it.sec_id())).subscribe())
-//                    .doOnNext(it -> securitiesCandlesHandler.fetch(createRequest(Interval.D1, it.sec_id())).subscribe())
-//                    .doOnNext(it -> securitiesCandlesHandler.fetch(createRequest(Interval.D7, it.sec_id())).subscribe())
-//                    .doOnNext(it -> securitiesCandlesHandler.fetch(createRequest(Interval.D31, it.sec_id())).subscribe())
-                    .subscribe(i -> log.debug("Startup sync securities candles FINISH"));
+        Disposable disposable = null;
+        for (Integer listing : List.of(1, 2, 3)) {
+            disposable = specificationsSecuritiesHandler.fetchByListingLvl(listing)
+                    .flatMap(sec -> Mono.just(sec.sec_id())
+                            .doOnNext(i -> securitiesCandlesHandler.fetch(createRequest(Interval.M1, sec.sec_id()))
+                                    .subscribeOn(scheduler1)
+                                    .subscribe())
+                            .doOnNext(i -> securitiesCandlesHandler.fetch(createRequest(Interval.M10, sec.sec_id()))
+                                    .subscribeOn(scheduler2)
+                                    .subscribe())
+                            .doOnNext(i -> securitiesCandlesHandler.fetch(createRequest(Interval.M60, sec.sec_id()))
+                                    .subscribeOn(scheduler3)
+                                    .subscribe())
+                            .doOnNext(i -> securitiesCandlesHandler.fetch(createRequest(Interval.D1, sec.sec_id()))
+                                    .subscribeOn(scheduler4)
+                                    .subscribe())
+                            .doOnNext(i -> securitiesCandlesHandler.fetch(createRequest(Interval.D7, sec.sec_id()))
+                                    .subscribeOn(scheduler5)
+                                    .subscribe())
+                            .doOnNext(i -> securitiesCandlesHandler.fetch(createRequest(Interval.D31, sec.sec_id()))
+                                    .subscribeOn(scheduler6)
+                                    .subscribe())
+                    )
+                    .subscribe();
         }
+
+        while (true) {
+            if (disposable.isDisposed()) {
+                log.info("Startup sync securities candles FINISH");
+                moexSyncDao.save(MoexSync.builder().dataType(SyncTypes.candles.name()).build())
+                        .subscribe();
+                break;
+            }
+        }
+
     }
 
     @SneakyThrows
-    private void syncProcess(SupplierMethodInvocation<Row, Exception> supplierMethodInvocation, Interval interval) {
+    private Object syncProcess(SupplierMethodInvocation supplierMethodInvocation, Interval interval) {
         var lockName = String.format(CATEGORY.concat("-%s"), interval);
-        invokeWithLock(lockService, new SecuritiesCandlesSyncLock(lockName),
+        return invokeWithLock(lockService, new SecuritiesCandlesSyncLock(lockName),
                 applicationConfigAdapter.resourceLockTimeout(),
                 supplierMethodInvocation);
     }
 
+    @SneakyThrows
     private RequestParamSecuritiesCandles createRequest(Interval interval, String sec) {
-        return switch (interval) {
-            case M1 -> new RequestParamSecuritiesCandles(
-                    sec,
-                    null,
-                    LocalDate.now().minusMonths(1),
-                    LocalDate.now(),
-                    interval.value,
-                    false);
-            case M10 -> new RequestParamSecuritiesCandles(
-                    sec,
-                    null,
-                    LocalDate.now().minusMonths(3),
-                    LocalDate.now(),
-                    interval.value,
-                    false);
-            case M60 -> new RequestParamSecuritiesCandles(
-                    sec,
-                    null,
-                    LocalDate.now().minusMonths(3),
-                    LocalDate.now(),
-                    interval.value,
-                    false);
-            case D1 -> new RequestParamSecuritiesCandles(
-                    sec,
-                    null,
-                    LocalDate.now().minusMonths(12),
-                    LocalDate.now(),
-                    interval.value,
-                    false);
-            case D7 -> new RequestParamSecuritiesCandles(
-                    sec,
-                    null,
-                    LocalDate.now().minusMonths(12),
-                    LocalDate.now(),
-                    interval.value,
-                    false);
-            case D31 -> new RequestParamSecuritiesCandles(
-                    sec,
-                    null,
-                    LocalDate.now().minusMonths(12 * 20),
-                    LocalDate.now(),
-                    interval.value,
-                    false);
-        };
+        var now = LocalDate.now();
+        var intervalToMoexMap = Map.of(
+                Interval.M1, 1,
+                Interval.M10, 3,
+                Interval.M60, 3,
+                Interval.D1, 12 * 5,
+                Interval.D7, 12 * 5,
+                Interval.D31, 12 * 20);
+
+        var lastSync = moexSyncDao.findByDataTypeOrderByUpdateDateDesc(SyncTypes.candles).toFuture().get();
+        var fromActual = lastSync == null
+                ? now.minusMonths(intervalToMoexMap.get(interval))
+                : lastSync.getUpdateDate().toLocalDate().plusDays(1L);
+
+        return RequestParamSecuritiesCandles.builder()
+                .security(sec)
+                .board(null)
+                .from(fromActual)
+                .till(now)
+                .interval(interval.value)
+                .reverse(false)
+                .build();
     }
 
 }

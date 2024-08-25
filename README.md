@@ -27,6 +27,7 @@ swagger-ui: http://path-to-stub/swagger-ui.html
 
 - при старте приложения заполнится таблица securities списком актуальных акций на мос бирже. Так же можно запросить
   вручную.
+- прокси на официальный https://iss.moex.com/iss/reference/5
   curl -X GET "http://localhost:24300/iss/securities"
 
 - в таблицу securities_trades сохранятся выполненные ордера текущей торговой сессии.
@@ -46,6 +47,7 @@ swagger-ui: http://path-to-stub/swagger-ui.html
   GET "http://localhost:24300/iss/engines/stock/markets/shares/securities/lkoh/candles?from=2024-01-01&till=2024-07-31&interval=1"
 
 ** Если не указывать till=, то по умолчанию будет использоваться текущая дата
+** Список engines https://iss.moex.com/iss/index.json?iss.only=trade_engines
 
 ## [Apache Superset](https://superset.apache.org/)
 

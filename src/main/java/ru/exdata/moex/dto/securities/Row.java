@@ -40,7 +40,7 @@ public class Row {
     private String gosreg;
     @JacksonXmlProperty(isAttribute = true, localName = "type")
     private String type;
-    @JacksonXmlProperty(isAttribute = true, localName = "groupp")
+    @JacksonXmlProperty(isAttribute = true, localName = "group")
     private String groupp;
     @JacksonXmlProperty(isAttribute = true, localName = "primary_boardid")
     private String primaryBoardid;

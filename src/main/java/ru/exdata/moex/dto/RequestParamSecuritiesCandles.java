@@ -6,6 +6,7 @@ import io.micronaut.core.convert.format.Format;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.serde.annotation.Serdeable;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 
 @EqualsAndHashCode(callSuper = false)
 @Introspected(excludes = "duration")
+@Builder
 @Serdeable
 @Data
 @NoArgsConstructor

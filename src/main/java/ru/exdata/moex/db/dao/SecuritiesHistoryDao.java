@@ -31,9 +31,12 @@ public class SecuritiesHistoryDao {
 
     @Transactional
     public Mono<SecuritiesHistory> save(Object[] dtos) {
+        log.info("save SecuritiesHistory to db.");
+
         if (dtos == null || dtos.length == 0) {
             return Mono.just(new SecuritiesHistory());
         }
+
         var mapped = SecuritiesHistoryMapper.fromArrToEntity(dtos);
         return securitiesHistoryRepository
                 .findByTradeDateAndBoardIdAndSecIdAndValue(

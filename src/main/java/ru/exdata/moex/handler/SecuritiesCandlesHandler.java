@@ -34,7 +34,11 @@ public class SecuritiesCandlesHandler {
     private final int MOEX_RESPONSE_MAX_ROW = 500;
 
     public Flux<Row> fetch(RequestParamSecuritiesCandles request) {
-        holidayService.weekendsIncrementFromOneDay(request);
+        if (holidayService.isHoliday(request.getFrom(), request)) {
+            return Flux.empty();
+        } else {
+            holidayService.weekendsIncrementFromOneDay(request);
+        }
         validateRequest(request);
         return request.getReverse()
                 ? fetchRepoReverse(request)
@@ -52,14 +56,13 @@ public class SecuritiesCandlesHandler {
                         securitiesCandlesDao
                                 .findAllByBeginAtAndSecurity(request.getFrom(), request.getInterval(), request.getSecurity())
                                 .map(it -> SecuritiesCandlesMapper.fromEntityToDtoCandles((SecuritiesCandlesAbstract) it)))
+                .doOnError(e -> new Exception(e.getMessage()))
                 .switchIfEmpty(fetchAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
-                                    holidayService.incrementFromOneDay(request);
-                                    holidayService.weekendsIncrementFromOneDay(request);
-                                    return request.getFrom().isBefore(request.getTill()) || request.getFrom().isEqual(request.getTill());
-                                }
-                        )
-                );
+                    holidayService.incrementFromOneDay(request);
+                    holidayService.weekendsIncrementFromOneDay(request);
+                    return request.getFrom().isBefore(request.getTill()) || request.getFrom().isEqual(request.getTill());
+                }));
     }
 
     private Flux<Row> fetchRepoReverse(RequestParamSecuritiesCandles request) {
@@ -67,21 +70,23 @@ public class SecuritiesCandlesHandler {
                         securitiesCandlesDao
                                 .findAllByBeginAtAndSecurity(request.getTill(), request.getInterval(), request.getSecurity())
                                 .map(it -> SecuritiesCandlesMapper.fromEntityToDtoCandles((SecuritiesCandlesAbstract) it)))
+                .doOnError(e -> new Exception(e.getMessage()))
                 .switchIfEmpty(fetchAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
-                                    holidayService.decrementTillOneDay(request);
-                                    holidayService.weekendsDecrementTillOneDay(request);
-                                    return request.getFrom().isBefore(request.getTill()) || request.getFrom().isEqual(request.getTill());
-                                }
-                        )
-                );
+                    holidayService.decrementTillOneDay(request);
+                    holidayService.weekendsDecrementTillOneDay(request);
+                    return request.getFrom().isBefore(request.getTill()) || request.getFrom().isEqual(request.getTill());
+                }));
     }
 
     private Flux<Row> fetchAndSave(RequestParamSecuritiesCandles request) {
+        if (holidayService.isHoliday(request.getFrom(), request)) {
+            return Flux.empty();
+        }
+
         PageNumber pageNumber = new PageNumber();
         return Flux.defer(() -> fetchPageable(request, pageNumber)
-                        .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe())
-                )
+                        .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe()))
                 // добавить тут логику для реверс
                 // добавить для pageNumber сохранять последнюю полученную дату
                 // проверять последнюю дату локально перед запросом
@@ -96,6 +101,7 @@ public class SecuritiesCandlesHandler {
                         String.valueOf(pageNumber.get()),
                         request.getInterval(),
                         request.getReverse())
+                .doOnError(e -> new Exception(e.getMessage()))
                 .filter(it -> !it.getData().getRows().isEmpty())
                 .doOnNext(it -> {
                     if (!request.getReverse()) {
@@ -144,8 +150,8 @@ public class SecuritiesCandlesHandler {
         if (request.getSecurity() == null) {
             throw new RuntimeException("Ошибка валидатора запроса. значение security не должно быть null {Например: SBER}");
         }
-        if (request.getSecurity().length() < 4 || request.getSecurity().length() > 5) {
-            throw new RuntimeException("Ошибка валидатора запроса. длина security должна быть = 4 или 5 символов");
+        if (request.getSecurity().length() < 4) {
+            throw new RuntimeException("Ошибка валидатора запроса. длина security должна быть = 4 или больше символов");
         }
         if (!Set.of(1, 10, 60, 24, 7, 31).contains(request.getInterval())) {
             throw new RuntimeException("Ошибка валидатора запроса. Interval should be eq = 1,10,60,24,7,31");

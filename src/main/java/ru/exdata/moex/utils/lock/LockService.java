@@ -1,15 +1,16 @@
 package ru.exdata.moex.utils.lock;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Сервис синхронизации по ресурсу
  */
 public interface LockService {
 
-    ResourceLock acquireLock(SynchronizedResource resource) throws LockBusyException;
+    ResourceLock acquireLock(SynchronizedResource resource) throws LockBusyException, ExecutionException, InterruptedException;
 
-    ResourceLock acquireLock(SynchronizedResource resource, LocalDateTime expirationDate) throws LockBusyException;
+    ResourceLock acquireLock(SynchronizedResource resource, LocalDateTime expirationDate) throws LockBusyException, ExecutionException, InterruptedException;
 
     boolean isResourceNotLocked(SynchronizedResource resource);
 

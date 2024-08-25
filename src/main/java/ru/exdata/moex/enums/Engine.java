@@ -9,8 +9,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum Engine {
 
-    Stock("stock");
-
-    public final String value;
+    stock
 
 }

@@ -18,9 +18,10 @@ public class SecuritiesDao {
     @Transactional
     public Mono<Securities> save(Row dto) {
         return Mono.just(SecuritiesMapper.fromDtoToEntity(dto))
-                .flatMap(sec -> Mono.from(securitiesRepository.findById(dto.getId()))
-                        .then(Mono.from(securitiesRepository.update(sec)))
-                        .switchIfEmpty(securitiesRepository.save(sec)));
+                .flatMap(sec -> securitiesRepository.findById(sec.getId())
+                        .then(securitiesRepository.update(sec))
+                        .switchIfEmpty(securitiesRepository.save(sec))
+                );
     }
 
 }

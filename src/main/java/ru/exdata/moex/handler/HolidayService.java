@@ -57,7 +57,7 @@ public class HolidayService {
     }
 
     void saveMissingDatesCandlesBackground(Document dto, LocalDate start, String secId, String board) {
-        String boardId = board == null ? Board.TQBR.value : board;
+        String boardId = board == null ? Board.TQBR.name() : board;
         Flux.just(dto)
                 .parallel()
                 .runOn(Schedulers.boundedElastic())
@@ -99,10 +99,7 @@ public class HolidayService {
                                   Function<LocalDate, SecuritiesHoliday> entity) {
         firstDate.datesUntil(secondDate)
                 .filter(excl -> firstInclude.test(firstDate, excl) && !excl.isEqual(secondDate))
-                .map(dataToSave -> {
-                    log.debug("Save holiday data: " + dataToSave);
-                    return securitiesHolidayDao.save(entity.apply(dataToSave)).subscribe();
-                })
+                .map(dataToSave -> securitiesHolidayDao.save(entity.apply(dataToSave)).subscribe())
                 .toList();
     }
 
@@ -123,7 +120,9 @@ public class HolidayService {
     }
 
     void incrementFromOneDay(GeneralRequest request) {
-        request.setFrom(request.getFrom().plusDays(1L));
+        if (LocalDate.now().isAfter(request.getFrom())) {
+            request.setFrom(request.getFrom().plusDays(1L));
+        }
     }
 
     void decrementTillOneDay(GeneralRequest request) {
@@ -132,13 +131,21 @@ public class HolidayService {
 
     void weekendsIncrementFromOneDay(GeneralRequest request, AtomicReference<LocalDate> from) {
         while (isWeekends(from.get()) || hasHolidayGap(request, from.get())) {
-            from.set(from.get().plusDays(1L));
+            if (LocalDate.now().isAfter(from.get())) {
+                from.set(from.get().plusDays(1L));
+            } else {
+                break;
+            }
         }
     }
 
     void weekendsIncrementFromOneDay(GeneralRequest request) {
         while (isWeekends(request.getFrom()) || hasHolidayGap(request, request.getFrom())) {
-            request.setFrom(request.getFrom().plusDays(1L));
+            if (LocalDate.now().isAfter(request.getFrom())) {
+                request.setFrom(request.getFrom().plusDays(1L));
+            } else {
+                break;
+            }
         }
     }
 
@@ -148,6 +155,10 @@ public class HolidayService {
         }
     }
 
+    boolean isHoliday(LocalDate date, GeneralRequest request) {
+        return isWeekends(date) || hasHolidayGap(request, date);
+    }
+
     private boolean isWeekends(LocalDate date) {
         return date.getDayOfWeek().getValue() == 6
                 || date.getDayOfWeek().getValue() == 7;
@@ -155,7 +166,7 @@ public class HolidayService {
 
     private boolean hasHolidayGap(GeneralRequest request, LocalDate date) {
         return Boolean.TRUE.equals(securitiesHolidayDao.findByBoardIdAndTradeDateAndSecId(
-                        request.getBoard() == null ? Board.TQBR.value : request.getBoard(),
+                        request.getBoard() == null ? Board.TQBR.name() : request.getBoard(),
                         date,
                         request.getSecurity())
                 .hasElement().subscribe());

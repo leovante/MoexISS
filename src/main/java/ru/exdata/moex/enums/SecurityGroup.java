@@ -7,8 +7,9 @@ import lombok.Getter;
 @Getter
 @Introspected
 @AllArgsConstructor
-public enum Market {
+public enum SecurityGroup {
 
-    shares
+    stock_shares,
+    stock_ppif
 
 }

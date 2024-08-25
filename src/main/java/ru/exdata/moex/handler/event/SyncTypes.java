@@ -1,13 +1,15 @@
 package ru.exdata.moex.handler.event;
 
-public enum SyncTypes {
-    Securities("securities");
+import io.micronaut.core.annotation.Introspected;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-    SyncTypes(String value) {
-        this.value = value;
-    }
-    public final String value;
-    public String getValue() {
-        return value;
-    }
+@Getter
+@Introspected
+@AllArgsConstructor
+public enum SyncTypes {
+
+    securities,
+    candles
+
 }
