@@ -14,6 +14,7 @@ import ru.exdata.moex.dto.candles.Row;
 import ru.exdata.moex.handler.client.SecuritiesCandlesApiClient;
 import ru.exdata.moex.handler.model.PageNumber;
 import ru.exdata.moex.mapper.SecuritiesCandlesMapper;
+import ru.exdata.moex.utils.Routines;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -102,7 +103,8 @@ public class SecuritiesCandlesHandler {
                         request.getInterval(),
                         request.getReverse())
                 .doOnError(e -> new Exception(e.getMessage()))
-                .filter(it -> !it.getData().getRows().isEmpty())
+                .filter(it -> it.getData() != null)
+                .filter(it -> Routines.getFirstNotNull(it.getData().getRows()) != null)
                 .doOnNext(it -> {
                     if (!request.getReverse()) {
                         holidayService.saveMissingDatesCandlesBackground(it, request.getFrom(), request.getSecurity(), request.getBoard());
