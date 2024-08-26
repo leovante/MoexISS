@@ -2,7 +2,6 @@ package ru.exdata.moex.mapper;
 
 import ru.exdata.moex.db.entity.SecuritiesCandlesAbstract;
 import ru.exdata.moex.db.entity.SecuritiesCandlesPk;
-import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
 import ru.exdata.moex.dto.candles.Row;
 
 import java.util.List;
@@ -53,11 +52,11 @@ public class SecuritiesCandlesMapper {
     }
 
     public static <T extends SecuritiesCandlesAbstract> T fromArrToEntity(Row row,
-                                                                          RequestParamSecuritiesCandles request,
+                                                                          String security,
                                                                           T securitiesCandles) {
         securitiesCandles.setSecuritiesCandlesPk(
                 new SecuritiesCandlesPk(
-                        request.getSecurity(),
+                        security,
                         row.getBegin(),
                         row.getEnd()));
         securitiesCandles.setOpen(row.getOpen());

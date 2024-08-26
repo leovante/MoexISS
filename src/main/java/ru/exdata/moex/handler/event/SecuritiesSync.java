@@ -4,7 +4,6 @@ import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.MoexSyncDao;
 import ru.exdata.moex.db.entity.MoexSync;
@@ -13,8 +12,7 @@ import ru.exdata.moex.dto.securities.Row;
 import ru.exdata.moex.handler.SecuritiesHandler;
 import ru.exdata.moex.handler.SecuritiesSpecHandler;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -27,21 +25,19 @@ public class SecuritiesSync {
 
     public void sync() {
         log.info("Startup sync securities START");
-        moexSyncDao.findByDataTypeOrderByUpdateDateDesc(SyncTypes.securities)
-                .doOnNext(c -> log.info(c.toString()))
-                .filter(entity -> entity.getUpdateDate().isAfter(LocalDateTime.now().minus(Duration.ofDays(1L))))
-                .publishOn(Schedulers.boundedElastic())
-                .switchIfEmpty(Mono.defer(() -> {
-                    fetchStocks()
-                            .doOnNext(it -> fetchSpecs(it.getSecId()).subscribe())
-                            .then(moexSyncDao.save(MoexSync.builder()
-                                    .dataType(SyncTypes.securities.name())
-                                    .build()))
-                            .subscribe();
-                    return Mono.empty();
-                }))
-                .subscribe(i -> log.debug("Startup sync securities FINISH"))
-        ;
+        Schedulers.newBoundedElastic(1, Integer.MAX_VALUE, "schedulerSecuritiesCandlesSync1")
+                .schedule(() -> moexSyncDao.findByDataTypeOrderByUpdateDateDesc(SyncTypes.securities)
+                        .filter(it -> it.getUpdateDate().toLocalDate().isBefore(LocalDate.now()))
+                        .flux()
+                        .flatMap(sync -> fetchStocks()
+                                .map(it -> fetchSpecs(it.getSecId())))
+                        .blockLast());
+
+        moexSyncDao.save(MoexSync.builder()
+                        .dataType(SyncTypes.securities.name())
+                        .build())
+                .log()
+                .subscribe(i -> log.info("Startup sync securities FINISH"));
     }
 
     private Flux<Row> fetchStocks() {

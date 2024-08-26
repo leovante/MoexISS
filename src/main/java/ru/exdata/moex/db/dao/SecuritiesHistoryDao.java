@@ -34,7 +34,7 @@ public class SecuritiesHistoryDao {
         log.info("save SecuritiesHistory to db.");
 
         if (dtos == null || dtos.length == 0) {
-            return Mono.just(new SecuritiesHistory());
+            return Mono.empty();
         }
 
         var mapped = SecuritiesHistoryMapper.fromArrToEntity(dtos);

@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EqualsAndHashCode(callSuper = false)
 @Introspected(excludes = "duration")
@@ -32,8 +33,19 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
         super();
         this.security = security;
         this.board = board;
-        this.from = from;
-        this.till = till;
+        this.from.set(from);
+        this.till.set(till);
+        this.interval = interval;
+        this.reverse = reverse;
+    }
+
+    public RequestParamSecuritiesCandles(String security,
+                                         String board,
+                                         Integer interval,
+                                         Boolean reverse) {
+        super();
+        this.security = security;
+        this.board = board;
         this.interval = interval;
         this.reverse = reverse;
     }
@@ -45,11 +57,11 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
     private String board;
     @Format(FORMAT_DATE)
     @QueryValue
-    private LocalDate from;
+    private final AtomicReference<LocalDate> from = new AtomicReference<LocalDate>();
     @Format(FORMAT_DATE)
     @QueryValue
     @Nullable
-    private LocalDate till;
+    private final AtomicReference<LocalDate> till = new AtomicReference<LocalDate>();
     @QueryValue
     private Integer interval;
     @QueryValue(defaultValue = "false")
@@ -58,5 +70,32 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
     public String getSecurity() {
         return security.toUpperCase();
     }
+
+    public void setFrom(LocalDate date) {
+        from.set(date);
+    }
+
+    public RequestParamSecuritiesCandles from(LocalDate date) {
+        from.set(date);
+        return this;
+    }
+
+    public LocalDate getFrom() {
+        return from.get();
+    }
+
+    public void setTill(LocalDate date) {
+        till.set(date);
+    }
+
+    public RequestParamSecuritiesCandles till(LocalDate date) {
+        till.set(date);
+        return this;
+    }
+
+    public LocalDate getTill() {
+        return till.get();
+    }
+
 
 }

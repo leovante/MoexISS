@@ -1,5 +1,7 @@
 package ru.exdata.moex.handler;
 
+import io.micronaut.transaction.annotation.Transactional;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,20 +29,21 @@ import java.util.Set;
 @Slf4j
 @RequiredArgsConstructor
 @Singleton
+@Named("SecuritiesCandlesHandler")
 public class SecuritiesCandlesHandler {
 
     private final SecuritiesCandlesApiClient securitiesApiClient;
-    private final SecuritiesCandlesDao securitiesCandlesDao;
-    private final HolidayService holidayService;
+    protected final SecuritiesCandlesDao securitiesCandlesDao;
+    protected final HolidayService holidayService;
     private final int MOEX_RESPONSE_MAX_ROW = 500;
 
     public Flux<Row> fetch(RequestParamSecuritiesCandles request) {
-        if (holidayService.isHoliday(request.getFrom(), request)) {
+        validateRequest(request);
+        if (holidayService.isHoliday(request.getFrom(), request.getBoard(), request.getSecurity())) {
             return Flux.empty();
         } else {
             holidayService.weekendsIncrementFromOneDay(request);
         }
-        validateRequest(request);
         return request.getReverse()
                 ? fetchRepoReverse(request)
                 : fetchRepo(request);
@@ -52,7 +55,8 @@ public class SecuritiesCandlesHandler {
      * @param request
      * @return
      */
-    private Flux<Row> fetchRepo(RequestParamSecuritiesCandles request) {
+    @Transactional
+    public Flux<Row> fetchRepo(RequestParamSecuritiesCandles request) {
         return Flux.defer(() ->
                         securitiesCandlesDao
                                 .findAllByBeginAtAndSecurity(request.getFrom(), request.getInterval(), request.getSecurity())
@@ -60,13 +64,17 @@ public class SecuritiesCandlesHandler {
                 .doOnError(e -> new Exception(e.getMessage()))
                 .switchIfEmpty(fetchAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
+                    if (!request.getFrom().isBefore(request.getTill())) {
+                        return false;
+                    }
                     holidayService.incrementFromOneDay(request);
                     holidayService.weekendsIncrementFromOneDay(request);
-                    return request.getFrom().isBefore(request.getTill()) || request.getFrom().isEqual(request.getTill());
+                    return true;
                 }));
     }
 
-    private Flux<Row> fetchRepoReverse(RequestParamSecuritiesCandles request) {
+    @Transactional
+    public Flux<Row> fetchRepoReverse(RequestParamSecuritiesCandles request) {
         return Flux.defer(() ->
                         securitiesCandlesDao
                                 .findAllByBeginAtAndSecurity(request.getTill(), request.getInterval(), request.getSecurity())
@@ -80,55 +88,68 @@ public class SecuritiesCandlesHandler {
                 }));
     }
 
-    private Flux<Row> fetchAndSave(RequestParamSecuritiesCandles request) {
-        if (holidayService.isHoliday(request.getFrom(), request)) {
+    protected Flux<Row> fetchAndSave(RequestParamSecuritiesCandles request) {
+        if (holidayService.isHoliday(request.getFrom(), request.getBoard(), request.getSecurity())) {
             return Flux.empty();
         }
 
+        var interval = request.getInterval();
+        var security = request.getSecurity();
+        var from = request.getFrom();
+        var till = request.getTill();
+
         PageNumber pageNumber = new PageNumber();
-        return Flux.defer(() -> fetchPageable(request, pageNumber)
-                        .doOnNext(it -> securitiesCandlesDao.save(it, request).subscribe()))
+        return Flux.defer(() -> fetchPageable(request, pageNumber, from, till)
+                        .doOnNext(it -> securitiesCandlesDao.save(it, interval, security).subscribe()))
                 // добавить тут логику для реверс
                 // добавить для pageNumber сохранять последнюю полученную дату
                 // проверять последнюю дату локально перед запросом
-                .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> pageNumber.get() > 0));
+                .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> pageNumber.get() >= 0));
     }
 
-    private Flux<Row> fetchPageable(RequestParamSecuritiesCandles request, PageNumber pageNumber) {
+    private Flux<Row> fetchPageable(RequestParamSecuritiesCandles request,
+                                    PageNumber pageNumber,
+                                    LocalDate from,
+                                    LocalDate till) {
+        if (pageNumber.get() < 0) {
+            return Flux.empty();
+        }
         return securitiesApiClient.fetch(
                         request.getSecurity(),
-                        request.getFrom().toString(),
-                        request.getTill().toString(),
+                        from.toString(),
+                        till.toString(),
                         String.valueOf(pageNumber.get()),
                         request.getInterval(),
                         request.getReverse())
-                .doOnError(e -> new Exception(e.getMessage()))
-                .filter(it -> it.getData() != null)
-                .filter(it -> Routines.getFirstNotNull(it.getData().getRows()) != null)
-                .doOnNext(it -> {
-                    if (!request.getReverse()) {
-                        holidayService.saveMissingDatesCandlesBackground(it, request.getFrom(), request.getSecurity(), request.getBoard());
-                    }
-                })
-                .doOnNext(it -> {
-                    var rows = it.getData().getRows();
-                    log.debug("response from securities candles moex api, first date: {}, last date: {}, batch rows size: {}",
-                            rows.get(0).getBegin(),
-                            rows.get(rows.size() - 1).getEnd(),
-                            rows.size());
-                    if (it.getData().getRows().size() < MOEX_RESPONSE_MAX_ROW) {
-                        pageNumber.stop();
-                        holidayService.alignDays(request);
-                    } else {
-                        pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
-                        log.debug("page number: " + pageNumber.get());
-                    }
-                })
-                .switchIfEmpty(Mono.defer(() -> {
-                    pageNumber.stop();
-                    holidayService.alignDays(request);
-                    return Mono.empty();
-                }))
+                .flatMap(response -> Mono.just(response)
+                        .doOnError(e -> new Exception(e.getMessage()))
+                        .filter(it -> it.getData() != null)
+                        .filter(it -> Routines.getFirstNotNull(it.getData().getRows()) != null)
+                        .map(it -> {
+                            var rows = it.getData().getRows();
+                            log.debug("response from securities candles moex api, first date: {}, last date: {}, batch rows size: {}",
+                                    rows.get(0).getBegin(),
+                                    rows.get(rows.size() - 1).getEnd(),
+                                    rows.size());
+                            if (it.getData().getRows().size() < MOEX_RESPONSE_MAX_ROW) {
+                                pageNumber.stop();
+                                holidayService.alignDays(request);
+                            } else {
+                                pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
+                                log.debug("page number: " + pageNumber.get());
+                            }
+                            return it;
+                        })
+                        /*.doOnNext(it -> {
+                            if (!request.getReverse()) {
+                                holidayService.saveMissingDatesCandlesBackground(it, from, request.getSecurity(), request.getBoard());
+                            }
+                        })*/
+                        .switchIfEmpty(Mono.defer(() -> {
+                            pageNumber.stop();
+                            holidayService.alignDays(request);
+                            return Mono.empty();
+                        })))
                 .flatMapIterable(it -> Optional.of(it)
                         .map(Document::getData)
                         .map(Data::getRows)
@@ -136,7 +157,7 @@ public class SecuritiesCandlesHandler {
                 ;
     }
 
-    private void validateRequest(RequestParamSecuritiesCandles request) {
+    protected void validateRequest(RequestParamSecuritiesCandles request) {
         if (request.getFrom() != null && request.getFrom().isBefore(LocalDate.ofYearDay(2000, 1))) {
             throw new RuntimeException("Ошибка валидатора запроса. значение from не должно быть before 2000-01-01");
         }

@@ -14,6 +14,8 @@ import ru.exdata.moex.enums.Board;
 import ru.exdata.moex.mapper.SecuritiesHistoryMapper;
 
 import java.time.LocalDate;
+import java.time.temporal.WeekFields;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
@@ -120,7 +122,7 @@ public class HolidayService {
     }
 
     void incrementFromOneDay(GeneralRequest request) {
-        if (LocalDate.now().isAfter(request.getFrom())) {
+        if (request.getFrom().isBefore(request.getTill()) && LocalDate.now().isAfter(request.getFrom())) {
             request.setFrom(request.getFrom().plusDays(1L));
         }
     }
@@ -130,8 +132,8 @@ public class HolidayService {
     }
 
     void weekendsIncrementFromOneDay(GeneralRequest request, AtomicReference<LocalDate> from) {
-        while (isWeekends(from.get()) || hasHolidayGap(request, from.get())) {
-            if (LocalDate.now().isAfter(from.get())) {
+        while (isWeekends(from.get()) || hasHolidayGap(request.getBoard(), request.getSecurity(), from.get())) {
+            if (from.get().isBefore(request.getTill()) && LocalDate.now().isAfter(from.get())) {
                 from.set(from.get().plusDays(1L));
             } else {
                 break;
@@ -140,8 +142,8 @@ public class HolidayService {
     }
 
     void weekendsIncrementFromOneDay(GeneralRequest request) {
-        while (isWeekends(request.getFrom()) || hasHolidayGap(request, request.getFrom())) {
-            if (LocalDate.now().isAfter(request.getFrom())) {
+        while (isWeekends(request.getFrom()) || hasHolidayGap(request.getBoard(), request.getSecurity(), request.getFrom())) {
+            if (request.getFrom().isBefore(request.getTill()) && LocalDate.now().isAfter(request.getFrom())) {
                 request.setFrom(request.getFrom().plusDays(1L));
             } else {
                 break;
@@ -150,25 +152,27 @@ public class HolidayService {
     }
 
     void weekendsDecrementTillOneDay(GeneralRequest request) {
-        while (isWeekends(request.getTill()) || hasHolidayGap(request, request.getTill())) {
+        while (isWeekends(request.getTill()) || hasHolidayGap(request.getBoard(), request.getSecurity(), request.getTill())) {
             request.setTill(request.getTill().minusDays(1L));
         }
     }
 
-    boolean isHoliday(LocalDate date, GeneralRequest request) {
-        return isWeekends(date) || hasHolidayGap(request, date);
+    public boolean isHoliday(LocalDate date, String board, String security) {
+        return isWeekends(date) || hasHolidayGap(board, security, date);
     }
 
     private boolean isWeekends(LocalDate date) {
+        var weekField = WeekFields.of(Locale.ROOT);
+        date.with(weekField.dayOfWeek(), 1);
         return date.getDayOfWeek().getValue() == 6
                 || date.getDayOfWeek().getValue() == 7;
     }
 
-    private boolean hasHolidayGap(GeneralRequest request, LocalDate date) {
+    private boolean hasHolidayGap(String board, String security, LocalDate date) {
         return Boolean.TRUE.equals(securitiesHolidayDao.findByBoardIdAndTradeDateAndSecId(
-                        request.getBoard() == null ? Board.TQBR.name() : request.getBoard(),
+                        board == null ? Board.TQBR.name() : board,
                         date,
-                        request.getSecurity())
+                        security)
                 .hasElement().subscribe());
     }
 

@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EqualsAndHashCode(callSuper = false)
 @Introspected(excludes = "duration")
@@ -20,7 +21,10 @@ public class RequestParamSecuritiesHistory extends GeneralRequest {
 
     private final static String FORMAT_DATE = "yyyy-MM-dd";
 
-    public RequestParamSecuritiesHistory(String security, String board, LocalDate from, LocalDate till) {
+    public RequestParamSecuritiesHistory(String security,
+                                         String board,
+                                         AtomicReference<LocalDate> from,
+                                         AtomicReference<LocalDate> till) {
         super();
         this.security = security;
         this.board = board;
@@ -34,10 +38,10 @@ public class RequestParamSecuritiesHistory extends GeneralRequest {
     private String board;
     @Format(FORMAT_DATE)
     @QueryValue
-    private LocalDate from;
+    private AtomicReference<LocalDate> from;
     @Format(FORMAT_DATE)
     @QueryValue
-    private LocalDate till;
+    private AtomicReference<LocalDate> till;
 
     public String getSecurity() {
         return security.toUpperCase();
@@ -45,6 +49,22 @@ public class RequestParamSecuritiesHistory extends GeneralRequest {
 
     public String getBoard() {
         return board.toUpperCase();
+    }
+
+    public void setFrom(LocalDate date) {
+        from.set(date);
+    }
+
+    public LocalDate getFrom() {
+        return from.get();
+    }
+
+    public void setTill(LocalDate date) {
+        till.set(date);
+    }
+
+    public LocalDate getTill() {
+        return till.get();
     }
 
 }

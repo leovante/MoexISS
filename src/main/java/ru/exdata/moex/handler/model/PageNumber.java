@@ -1,19 +1,21 @@
 package ru.exdata.moex.handler.model;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class PageNumber {
 
-    private int page = 0;
+    private final AtomicInteger page = new AtomicInteger(0);
 
     public void increment(int i) {
-        page = page + i;
+        page.addAndGet(i);
     }
 
     public int get() {
-        return page;
+        return page.get();
     }
 
     public void stop() {
-        page = -1;
+        page.set(-1);
     }
 
 }

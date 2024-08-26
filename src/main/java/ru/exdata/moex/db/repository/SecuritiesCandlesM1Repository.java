@@ -17,27 +17,36 @@ import java.time.LocalDateTime;
 public interface SecuritiesCandlesM1Repository/*<T extends SecuritiesCandlesAbstract, E extends SecuritiesCandlesPk> */
         extends SecuritiesCandlesRepository<SecuritiesCandlesM1, SecuritiesCandlesPk> {
 
-    @Query(value = ""
-            + "select * "
-            + "from securities_candles_m1 t "
-            + "where t.begin_at >= cast(:date as timestamp) "
-            + "  and t.begin_at < cast(:date as timestamp) + interval '1 day' "
-            + "  and t.sec_id = UPPER(:security) "
-            + "order by t.begin_at asc "
-            + "")
+    @Query(value = """
+            select * 
+            from securities_candles_m1 t 
+            where t.begin_at >= cast(:date as timestamp) 
+              and t.begin_at < cast(:date as timestamp) + interval '1 day' 
+              and t.sec_id = UPPER(:security) 
+            order by t.begin_at asc 
+            """)
     Flux<SecuritiesCandlesM1> findAllByBeginAtAndSecurity(LocalDate date, String security);
 
-    @Query(value = ""
-            + "select * "
-            + "from securities_candles_m1 t "
-            + "where t.begin_at = cast(:beginAt as timestamp) "
-            + "  and t.end_at = cast(:endAt as timestamp)"
-            + "  and t.sec_id = UPPER(:secId) "
-            + "order by t.begin_at asc "
-            + "")
+    @Query(value = """
+            select * 
+            from securities_candles_m1 t 
+            where t.begin_at = cast(:beginAt as timestamp) 
+              and t.end_at = cast(:endAt as timestamp)
+              and t.sec_id = UPPER(:secId) 
+            order by t.begin_at asc 
+             """)
     Mono<SecuritiesCandlesM1> findByPk(String secId, LocalDateTime beginAt, LocalDateTime endAt);
 
     @Override
     @NonNull <S extends SecuritiesCandlesM1> Mono<S> save(@NonNull S entity);
+
+    @Query("""
+            select count(t) 
+            from securities_candles_m1 t 
+            where t.begin_at >= cast(:date as timestamp) 
+              and t.begin_at < cast(:date as timestamp) + interval '1 day' 
+              and t.sec_id = UPPER(:security)
+            """)
+    Mono<Long> count(LocalDate date, String security);
 
 }

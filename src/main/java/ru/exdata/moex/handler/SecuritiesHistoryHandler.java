@@ -47,6 +47,9 @@ public class SecuritiesHistoryHandler {
         return Flux.defer(() -> securitiesHistoryDao.findByTradeDateAndBoardIdAndSecId(request, fromDate.get()))
                 .switchIfEmpty(fetchAndSave(request, fromDate))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
+                                    if (!fromDate.get().isBefore(request.getTill())) {
+                                        return false;
+                                    }
                                     holidayService.incrementDay(fromDate);
                                     holidayService.weekendsIncrementFromOneDay(request, fromDate);
                                     return (fromDate.get().isBefore(request.getTill()) || fromDate.get().isEqual(request.getTill()))
@@ -76,7 +79,7 @@ public class SecuritiesHistoryHandler {
                         null)
                 .filter(it -> it.getSecuritiesHistory().getColumns().length == 23)
                 .filter(it -> !it.getSecuritiesHistory().getData().isEmpty())
-                .doOnNext(it -> holidayService.saveMissingDatesHistoryBackground(it, fromDate.get()))
+//                .doOnNext(it -> holidayService.saveMissingDatesHistoryBackground(it, fromDate.get()))
                 .doOnNext(it -> {
                     var firstName = it.getSecuritiesHistory().getData();
                     log.debug("request to securities history moex api: " + firstName.get(0)[1]);

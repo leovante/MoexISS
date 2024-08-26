@@ -17,11 +17,10 @@ public class SecuritiesDao {
 
     @Transactional
     public Mono<Securities> save(Row dto) {
-        return Mono.just(SecuritiesMapper.fromDtoToEntity(dto))
+        return Mono.fromCallable(() -> SecuritiesMapper.fromDtoToEntity(dto))
                 .flatMap(sec -> securitiesRepository.findById(sec.getId())
                         .then(securitiesRepository.update(sec))
-                        .switchIfEmpty(securitiesRepository.save(sec))
-                );
+                        .switchIfEmpty(securitiesRepository.save(sec)));
     }
 
 }

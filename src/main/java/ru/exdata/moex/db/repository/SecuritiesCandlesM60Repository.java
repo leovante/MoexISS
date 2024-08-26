@@ -39,4 +39,13 @@ public interface SecuritiesCandlesM60Repository extends SecuritiesCandlesReposit
     @Override
     @NonNull <S extends SecuritiesCandlesM60> Mono<S> save(@NonNull S entity);
 
+    @Query("""
+            select count(t) 
+            from securities_candles_m60 t 
+            where t.begin_at >= cast(:date as timestamp) 
+              and t.begin_at < cast(:date as timestamp) + interval '1 day' 
+              and t.sec_id = UPPER(:security)
+            """)
+    Mono<Long> count(LocalDate date, String security);
+
 }

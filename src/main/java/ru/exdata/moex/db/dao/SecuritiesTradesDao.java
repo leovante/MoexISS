@@ -33,12 +33,12 @@ public class SecuritiesTradesDao {
         log.info("save SecuritiesTradesDao to db.");
 
         if (dtos == null || dtos.length == 0) {
-            return Mono.just(new SecuritiesTrades());
+            return Mono.empty();
         }
-        var mapped = SecuritiesTradesMapper.fromArrToEntity(dtos);
-        return securitiesTradesRepository
-                .findByTradeNo(mapped.getTradeNo())
-                .switchIfEmpty(securitiesTradesRepository.save(mapped));
+
+        return Mono.fromCallable(() -> SecuritiesTradesMapper.fromArrToEntity(dtos))
+                .flatMap(sec -> securitiesTradesRepository.findByTradeNo(sec.getTradeNo())
+                        .switchIfEmpty(securitiesTradesRepository.save(sec)));
     }
 
 }

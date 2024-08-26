@@ -3,6 +3,8 @@ package ru.exdata.moex.controllers;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.validation.Validated;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -18,7 +20,9 @@ import ru.exdata.moex.handler.SecuritiesCandlesHandler;
 public class BoardSecuritiesRouter {
 
     private final BoardSecuritiesHandler securitiesService;
-    private final SecuritiesCandlesHandler securitiesCandlesHandler;
+    @Named("SecuritiesCandlesHandler")
+    @Inject
+    private SecuritiesCandlesHandler securitiesCandlesHandler;
 
     @Get("/engines/stock/markets/shares/boards/{board}/securities/columns")
     @Status(HttpStatus.OK)

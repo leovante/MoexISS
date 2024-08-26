@@ -59,10 +59,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
           memory: 500M
-        reservations:
-          cpus: '0.5'
 
   pgadmin:
     container_name: pgadmin
@@ -258,6 +255,13 @@ services:
     ports:
       - '8080:8080'
     command: webserver
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
 
 volumes:
   pg_moex2:
