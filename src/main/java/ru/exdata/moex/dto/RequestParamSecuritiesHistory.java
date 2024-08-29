@@ -59,6 +59,10 @@ public class RequestParamSecuritiesHistory extends GeneralRequest {
         return from.get();
     }
 
+    public AtomicReference<LocalDate> getAtomicFrom() {
+        return from;
+    }
+
     public void setTill(LocalDate date) {
         till.set(date);
     }

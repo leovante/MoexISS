@@ -105,20 +105,14 @@ public class HolidayService {
                 .toList();
     }
 
-    void alignDays(LocalDate till, AtomicReference<LocalDate> fromDate) {
-        fromDate.set(till);
-    }
-
     void alignDays(GeneralRequest request) {
         request.setFrom(request.getTill());
     }
 
-    void incrementDay(AtomicReference<LocalDate> request, LocalDate date) {
-        request.set(date);
-    }
-
     void incrementDay(AtomicReference<LocalDate> from) {
-        from.set(from.get().plusDays(1L));
+        if (LocalDate.now().isAfter(from.get())) {
+            from.set(from.get().plusDays(1L));
+        }
     }
 
     void incrementFromOneDay(GeneralRequest request) {

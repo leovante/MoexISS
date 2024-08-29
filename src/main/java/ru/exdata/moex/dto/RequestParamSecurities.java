@@ -22,7 +22,7 @@ public class RequestParamSecurities extends GeneralRequest {
     @QueryValue(defaultValue = "shares")
     private String market;
     @QueryValue(defaultValue = "0")
-    private int start;
+    private Integer start;
     @QueryValue(defaultValue = "ru")
     private String lang;
     /**
@@ -34,7 +34,7 @@ public class RequestParamSecurities extends GeneralRequest {
     private String q;
     @Nullable
     @QueryValue(defaultValue = "100")
-    private int limit;
+    private Integer limit;
     @QueryValue(defaultValue = "trade_engines")
     private String issOnly;
 

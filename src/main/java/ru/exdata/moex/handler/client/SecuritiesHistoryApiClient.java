@@ -7,6 +7,7 @@ import io.micronaut.http.annotation.Header;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.annotation.Client;
 import reactor.core.publisher.Mono;
+import ru.exdata.moex.dto.RequestParamSecuritiesHistory;
 import ru.exdata.moex.dto.history.SecuritiesHistoryDto;
 
 import static io.micronaut.http.HttpHeaders.ACCEPT;
@@ -23,5 +24,12 @@ public interface SecuritiesHistoryApiClient {
                                      @QueryValue String from,
                                      @QueryValue String till,
                                      @QueryValue(defaultValue = "0") String start);
+
+    default Mono<SecuritiesHistoryDto> fetch(RequestParamSecuritiesHistory request) {
+        return fetch(request.getSecurity(),
+                request.getFrom().toString(),
+                request.getTill().toString(),
+                null);
+    }
 
 }

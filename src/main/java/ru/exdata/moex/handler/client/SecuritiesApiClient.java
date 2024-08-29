@@ -8,6 +8,7 @@ import io.micronaut.http.annotation.Header;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.annotation.Client;
 import reactor.core.publisher.Mono;
+import ru.exdata.moex.dto.RequestParamSecurities;
 import ru.exdata.moex.dto.securities.Document;
 
 import static io.micronaut.http.HttpHeaders.ACCEPT;
@@ -23,7 +24,7 @@ public interface SecuritiesApiClient {
     Mono<Document> fetch(@QueryValue(defaultValue = "1") String isTrading,
                          @QueryValue(defaultValue = "stock") String engine,
                          @QueryValue(defaultValue = "shares") String market,
-                         @QueryValue(defaultValue = "0") int start,
+                         @QueryValue(defaultValue = "0") Integer start,
                          @QueryValue(defaultValue = "ru") String lang,
                          /**
                           * Поиск инструмента по части Кода, Названию, ISIN, Идентификатору Эмитента, Номеру гос.регистрации.
@@ -32,5 +33,17 @@ public interface SecuritiesApiClient {
                          @Nullable @QueryValue String q,
                          @Nullable @QueryValue(defaultValue = "100") String limit,
                          @QueryValue(defaultValue = "trade_engines") String issOnly);
+
+    default Mono<Document> fetch(RequestParamSecurities request, Integer pageNumber) {
+        return fetch(
+                request.getIsTrading(),
+                request.getEngine(),
+                request.getMarket(),
+                pageNumber + request.getStart(),
+                request.getLang(),
+                request.getQ(),
+                request.getLimit().toString(),
+                request.getIssOnly());
+    }
 
 }

@@ -4,6 +4,7 @@ import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.SecuritiesHistoryDao;
 import ru.exdata.moex.dto.RequestParamSecuritiesHistory;
@@ -13,7 +14,6 @@ import ru.exdata.moex.mapper.SecuritiesHistoryMapper;
 
 import java.time.LocalDate;
 import java.util.LinkedList;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Получение названий акций списком с пагинацией.
@@ -31,10 +31,9 @@ public class SecuritiesHistoryHandler {
 
 
     public Flux<Object[]> fetch(RequestParamSecuritiesHistory request) {
-        AtomicReference<LocalDate> fromDate = new AtomicReference<>(request.getFrom());
-        holidayService.weekendsIncrementFromOneDay(request, fromDate);
         validateRequest(request);
-        return fetchRepo(request, fromDate);
+        holidayService.weekendsIncrementFromOneDay(request);
+        return fetchRepo(request);
     }
 
     /**
@@ -43,25 +42,24 @@ public class SecuritiesHistoryHandler {
      * @param request request.
      * @return ret.
      */
-    private Flux<Object[]> fetchRepo(RequestParamSecuritiesHistory request, AtomicReference<LocalDate> fromDate) {
-        return Flux.defer(() -> securitiesHistoryDao.findByTradeDateAndBoardIdAndSecId(request, fromDate.get()))
-                .switchIfEmpty(fetchAndSave(request, fromDate))
+    private Flux<Object[]> fetchRepo(RequestParamSecuritiesHistory request) {
+        return Flux.defer(() -> securitiesHistoryDao.findByTradeDateAndBoardIdAndSecId(request, request.getFrom()))
+                .switchIfEmpty(fetchAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
-                                    if (!fromDate.get().isBefore(request.getTill())) {
+                                    if (!request.getFrom().isBefore(request.getTill())) {
                                         return false;
                                     }
-                                    holidayService.incrementDay(fromDate);
-                                    holidayService.weekendsIncrementFromOneDay(request, fromDate);
-                                    return (fromDate.get().isBefore(request.getTill()) || fromDate.get().isEqual(request.getTill()))
-                                            && fromDate.get().isBefore(LocalDate.now());
+                                    holidayService.incrementDay(request.getAtomicFrom());
+                                    holidayService.weekendsIncrementFromOneDay(request, request.getAtomicFrom());
+                                    return true;
                                 }
                         )
                 );
     }
 
-    private Flux<Object[]> fetchAndSave(RequestParamSecuritiesHistory request, AtomicReference<LocalDate> fromDate) {
+    private Flux<Object[]> fetchAndSave(RequestParamSecuritiesHistory request) {
         PageNumber pageNumber = new PageNumber();
-        return Flux.defer(() -> fetchPageable(request, pageNumber, fromDate)
+        return Flux.defer(() -> fetchPageable(request, pageNumber)
                         .parallel()
                         .runOn(Schedulers.boundedElastic())
                         .doOnNext(it -> securitiesHistoryDao.save(it).subscribe())
@@ -71,33 +69,33 @@ public class SecuritiesHistoryHandler {
                 ;
     }
 
-    private Flux<Object[]> fetchPageable(RequestParamSecuritiesHistory request, PageNumber pageNumber, AtomicReference<LocalDate> fromDate) {
-        return securitiesHistoryApiClient.fetch(
-                        request.getSecurity(),
-                        fromDate.get().toString(),
-                        request.getTill().toString(),
-                        null)
-                .filter(it -> it.getSecuritiesHistory().getColumns().length == 23)
-                .filter(it -> !it.getSecuritiesHistory().getData().isEmpty())
+    private Flux<Object[]> fetchPageable(RequestParamSecuritiesHistory request, PageNumber pageNumber) {
+        return securitiesHistoryApiClient.fetch(request)
 //                .doOnNext(it -> holidayService.saveMissingDatesHistoryBackground(it, fromDate.get()))
-                .doOnNext(it -> {
-                    var firstName = it.getSecuritiesHistory().getData();
-                    log.debug("request to securities history moex api: " + firstName.get(0)[1]);
-                    if (request.getDuration().toDays() == 0 || it.getSecuritiesHistory().getData().size() == request.getDuration().toDays()) {
-                        pageNumber.stop();
-                        holidayService.alignDays(request.getTill(), fromDate);
-                    } else if (it.getSecuritiesHistory().getData().size() < MOEX_RESPONSE_MAX_ROW) {
-//                        pageNumber.increment(it.getSecuritiesHistory().getData().size());
-                        pageNumber.stop();
-                        holidayService.alignDays(request.getTill(), fromDate);
-                    } else {
-                        var linked = new LinkedList<Object[]>(it.getSecuritiesHistory().getData());
-                        var mapped = SecuritiesHistoryMapper.fromArrToEntity(linked.getLast());
-                        holidayService.incrementDay(fromDate, mapped.getTradeDate().plusDays(1L));
-                        pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
-                        log.debug("page number: " + pageNumber.get());
-                    }
-                })
+                .flatMap(response -> Mono.just(response)
+                        .doOnError(e -> new Exception(e.getMessage()))
+                        .filter(it -> it.getSecuritiesHistory() != null)
+                        .filter(it -> it.getSecuritiesHistory().getColumns().length == 23)
+                        .filter(it -> !it.getSecuritiesHistory().getData().isEmpty())
+                        .map(it -> {
+                            var firstName = response.getSecuritiesHistory().getData();
+                            log.debug("request to securities history moex api: " + firstName.get(0)[1]);
+                            if (request.getDuration().toDays() == 0 ||
+                                    response.getSecuritiesHistory().getData().size() == request.getDuration().toDays()) {
+                                pageNumber.stop();
+                                holidayService.alignDays(request);
+                            } else if (response.getSecuritiesHistory().getData().size() < MOEX_RESPONSE_MAX_ROW) {
+                                pageNumber.stop();
+                                holidayService.alignDays(request);
+                            } else {
+                                var linked = new LinkedList<Object[]>(response.getSecuritiesHistory().getData());
+                                var mapped = SecuritiesHistoryMapper.fromArrToEntity(linked.getLast());
+                                request.setFrom(mapped.getTradeDate().plusDays(1L));
+                                pageNumber.increment(MOEX_RESPONSE_MAX_ROW);
+                                log.debug("page number: " + pageNumber.get());
+                            }
+                            return response;
+                        }))
                 .flatMapIterable(it -> it.getSecuritiesHistory().getData());
     }
 
@@ -118,9 +116,6 @@ public class SecuritiesHistoryHandler {
         if (request.getSecurity().length() < 4 || request.getSecurity().length() > 5) {
             throw new RuntimeException("Ошибка валидатора запроса. длина security должна быть = 4 или 5 символов");
         }
-        /*if (Duration.between(request.getFrom(), request.getTill()).toDays() <= 3 * 365) {
-            throw new RuntimeException("Ошибка валидатора запроса. Не более 3-х лет");
-        }*/
     }
 
 }

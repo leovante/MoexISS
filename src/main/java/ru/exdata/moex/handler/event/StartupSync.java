@@ -8,12 +8,18 @@ import lombok.RequiredArgsConstructor;
 
 @Singleton
 @RequiredArgsConstructor
-public class Startup {
+public class StartupSync {
 
     private final ApplicationContext ctx;
 
     @EventListener
     public void onStartup(StartupEvent event) {
+        ctx.getBean(SecuritiesSync.class).sync();
+        ctx.getBean(SecuritiesCandlesSync.class).sync();
+    }
+
+    @EventListener
+    public void syncSecuritiesEvent(SecuritiesSyncEvent securitiesSyncEvent) {
         ctx.getBean(SecuritiesSync.class).sync();
         ctx.getBean(SecuritiesCandlesSync.class).sync();
     }

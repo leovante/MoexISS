@@ -39,15 +39,7 @@ public class SecuritiesHandler {
     }
 
     private Flux<Row> fetchPageable(RequestParamSecurities request, PageNumber pageNumber) {
-        return securitiesApiClient.fetch(
-                        request.getIsTrading(),
-                        request.getEngine(),
-                        request.getMarket(),
-                        pageNumber.get() + request.getStart(),
-                        request.getLang(),
-                        request.getQ(),
-                        String.valueOf(request.getLimit()),
-                        request.getIssOnly())
+        return securitiesApiClient.fetch(request, pageNumber.get())
                 .doOnError(e -> new Exception(e.getMessage()))
                 .filter(it -> !it.getData().getRows().isEmpty())
                 .doOnNext(c -> log.debug("request to securities moex api: " + c.getData().getRows().get(0).getSecId()))

@@ -39,10 +39,9 @@ public class SecuritiesCandlesHandler {
 
     public Flux<Row> fetch(RequestParamSecuritiesCandles request) {
         validateRequest(request);
+        holidayService.weekendsIncrementFromOneDay(request);
         if (holidayService.isHoliday(request.getFrom(), request.getBoard(), request.getSecurity())) {
             return Flux.empty();
-        } else {
-            holidayService.weekendsIncrementFromOneDay(request);
         }
         return request.getReverse()
                 ? fetchRepoReverse(request)
@@ -114,13 +113,7 @@ public class SecuritiesCandlesHandler {
         if (pageNumber.get() < 0) {
             return Flux.empty();
         }
-        return securitiesApiClient.fetch(
-                        request.getSecurity(),
-                        from.toString(),
-                        till.toString(),
-                        String.valueOf(pageNumber.get()),
-                        request.getInterval(),
-                        request.getReverse())
+        return securitiesApiClient.fetch(request, from, till, pageNumber.get())
                 .flatMap(response -> Mono.just(response)
                         .doOnError(e -> new Exception(e.getMessage()))
                         .filter(it -> it.getData() != null)
