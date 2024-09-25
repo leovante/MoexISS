@@ -29,11 +29,17 @@ public interface SecuritiesSpecRepository extends ReactiveStreamsCrudRepository<
     @Override
     @NonNull Mono<Long> delete(@NonNull SecuritiesSpec entity);
 
-    @Query(value = "" +
-            "select distinct (sec_id) from securities_spec " +
-            "where name = 'LISTLEVEL' " +
-            "and valuee = :lvl " +
-            "order by sec_id ")
+    @Query(value = """
+            with init as (select sec_id, name, valuee
+                          from securities_spec
+                          group by sec_id, name, valuee
+                          having name = 'LISTLEVEL'
+                              or name = 'ISIN'
+                          order by sec_id)
+            select sec_id, valuee as isin
+            from init
+            where name = 'ISIN';
+            """)
     @NonNull Flux<rSecuritiesSpec> findByListLvl(String lvl);
 
 }

@@ -1,6 +1,6 @@
 micronaut:
   application:
-    name: moex2
+    name: moex-iss
   server:
     port: ${APP_PORT}
     netty:

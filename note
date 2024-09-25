@@ -1,0 +1,22 @@
+mvn clean install -DskipTests
+# docker system prune
+# docker image prune
+docker build -t leovante/moex2:latest -t leovante/moex2:0.1.9 .
+docker push -a leovante/moex2
+
+docker compose up -d
+Флаг -d (detach) означает отключение контейнера от консоли
+
+- найти id контейнера
+docker container ls
+- зайти в контейнер (одна из команд работает)
+winpty docker exec -u root -t -i 5235ea888df9 bash
+docker exec -u root -t -i 9d5e2f74af22 bash
+docker exec -u root -t -i 5235ea888df9 /bin/bash
+docker exec -it bdd651024d06 /bin/sh
+- повысить права для файла
+chmod 777 superset.db
+- посмотреть характеристики линукса в контейнере
+uname -a
+cat /etc/*-release
+
