@@ -5,6 +5,7 @@ import io.micronaut.core.convert.format.Format;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.serde.annotation.Serdeable;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -23,25 +24,34 @@ public class RequestParamSecuritiesHistory extends GeneralRequest {
 
     public RequestParamSecuritiesHistory(String security,
                                          String board,
-                                         AtomicReference<LocalDate> from,
-                                         AtomicReference<LocalDate> till) {
+                                         LocalDate from,
+                                         LocalDate till) {
         super();
         this.security = security;
         this.board = board;
-        this.from = from;
-        this.till = till;
+        this.from.set(from);
+        this.till.set(till);
     }
 
     @PathVariable
     private String security;
+
     @PathVariable
     private String board;
+
     @Format(FORMAT_DATE)
     @QueryValue
-    private AtomicReference<LocalDate> from;
+    private LocalDate fromDate;
+
+    @Schema(hidden = true)
+    private AtomicReference<LocalDate> from = new AtomicReference<LocalDate>();
+
     @Format(FORMAT_DATE)
     @QueryValue
-    private AtomicReference<LocalDate> till;
+    private LocalDate tillDate;
+
+    @Schema(hidden = true)
+    private AtomicReference<LocalDate> till = new AtomicReference<LocalDate>();
 
     public String getSecurity() {
         return security.toUpperCase();

@@ -1,6 +1,7 @@
 package ru.exdata.moex.controllers;
 
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.validation.Validated;
 import jakarta.inject.Inject;
@@ -25,20 +26,23 @@ public class BoardSecuritiesRouter {
     private SecuritiesCandlesHandler securitiesCandlesHandler;
 
     @Get("/engines/stock/markets/shares/boards/{board}/securities/columns")
+    @Produces(MediaType.APPLICATION_JSON_STREAM)
     @Status(HttpStatus.OK)
-    public Mono<Object> fetchColumns(@PathVariable String board) {
+    public Mono<Object> fetchColumnsStream(@PathVariable String board) {
         return securitiesService.fetchColumns();
     }
 
     @Get("/engines/stock/markets/shares/boards/{board}/securities")
+    @Produces(MediaType.APPLICATION_JSON_STREAM)
     @Status(HttpStatus.OK)
-    public Mono<Object> fetchSecurities(@PathVariable String board) {
+    public Mono<Object> fetchSecuritiesStream(@PathVariable String board) {
         return securitiesService.fetchSecurities();
     }
 
     @Get("/engines/stock/markets/shares/boards/{board}/securities/{security}/candles")
+    @Produces(MediaType.APPLICATION_JSON_STREAM)
     @Status(HttpStatus.OK)
-    public Flux<Row> fetchSecurities(@Valid @RequestBean RequestParamSecuritiesCandles request) {
+    public Flux<Row> fetchSecuritiesCandlesStream(@Valid @RequestBean RequestParamSecuritiesCandles request) {
         return securitiesCandlesHandler.fetch(request);
     }
 

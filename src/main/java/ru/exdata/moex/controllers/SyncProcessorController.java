@@ -21,7 +21,7 @@ public class SyncProcessorController {
 
     @Post("/securities")
     @Status(HttpStatus.CREATED)
-    public HttpResponse<UUID> fetchSecurities() {
+    public HttpResponse<UUID> fetchSecuritiesSync() {
         var uuid = UUID.randomUUID();
         eventPublisher.publishEventAsync(SecuritiesSyncEvent.builder().processId(uuid).build());
         return HttpResponse.ok(uuid);

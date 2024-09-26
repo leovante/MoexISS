@@ -1,10 +1,8 @@
 package ru.exdata.moex.controllers;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.PathVariable;
-import io.micronaut.http.annotation.Status;
+import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.*;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import ru.exdata.moex.db.records.rSecuritiesSpec;
@@ -17,8 +15,9 @@ public class SecuritiesSpecificationsRouter {
     private final SpecificationsSecuritiesHandler specificationsSecuritiesHandler;
 
     @Get("/securities/listing/{listing}")
+    @Produces(MediaType.APPLICATION_JSON_STREAM)
     @Status(HttpStatus.OK)
-    public Flux<rSecuritiesSpec> getSecurities(@PathVariable Integer listing) {
+    public Flux<rSecuritiesSpec> getSecuritiesStream(@PathVariable Integer listing) {
         return specificationsSecuritiesHandler.fetchByListingLvl(listing);
     }
 

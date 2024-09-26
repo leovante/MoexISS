@@ -6,6 +6,7 @@ import io.micronaut.core.convert.format.Format;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.serde.annotation.Serdeable;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -26,15 +27,15 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
 
     public RequestParamSecuritiesCandles(String security,
                                          String board,
-                                         LocalDate from,
-                                         LocalDate till,
+                                         LocalDate fromDate,
+                                         LocalDate tillDate,
                                          Integer interval,
                                          Boolean reverse) {
         super();
         this.security = security;
         this.board = board;
-        this.from.set(from);
-        this.till.set(till);
+        this.from.set(fromDate);
+        this.till.set(tillDate);
         this.interval = interval;
         this.reverse = reverse;
     }
@@ -52,18 +53,29 @@ public class RequestParamSecuritiesCandles extends GeneralRequest {
 
     @PathVariable
     private String security;
+
     @PathVariable
     @Nullable
     private String board;
+
     @Format(FORMAT_DATE)
     @QueryValue
+    private LocalDate fromDate;
+
+    @Schema(hidden = true)
     private final AtomicReference<LocalDate> from = new AtomicReference<LocalDate>();
+
     @Format(FORMAT_DATE)
     @QueryValue
     @Nullable
+    private LocalDate tillDate;
+
+    @Schema(hidden = true)
     private final AtomicReference<LocalDate> till = new AtomicReference<LocalDate>();
+
     @QueryValue
     private Integer interval;
+
     @QueryValue(defaultValue = "false")
     private Boolean reverse;
 

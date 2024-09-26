@@ -30,15 +30,23 @@ public interface SecuritiesSpecRepository extends ReactiveStreamsCrudRepository<
     @NonNull Mono<Long> delete(@NonNull SecuritiesSpec entity);
 
     @Query(value = """
-            with init as (select sec_id, name, valuee
+            with securities as (select distinct isin
+                                from securities
+                                where is_traded = 1),
+                 spec as (select sec_id, name, valuee
                           from securities_spec
                           group by sec_id, name, valuee
                           having name = 'LISTLEVEL'
                               or name = 'ISIN'
-                          order by sec_id)
-            select sec_id, valuee as isin
-            from init
-            where name = 'ISIN';
+                          order by sec_id),
+                 spec2 as (select sec_id, valuee as isin
+                           from spec
+                           where name = 'ISIN'),
+                 joins as (select distinct on (se.isin, sp.sec_id) sp.*
+                             from securities se
+                                      join spec2 sp on se.isin = sp.isin)
+            select *
+            from joins;
             """)
     @NonNull Flux<rSecuritiesSpec> findByListLvl(String lvl);
 

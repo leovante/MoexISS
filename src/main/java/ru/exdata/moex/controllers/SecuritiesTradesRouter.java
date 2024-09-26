@@ -20,7 +20,7 @@ public class SecuritiesTradesRouter {
     @Get("/engines/stock/markets/shares/securities/{security}/trades")
     @Produces(MediaType.APPLICATION_JSON_STREAM)
     @Status(HttpStatus.OK)
-    public Flux<Object[]> getSecuritiesTrades(@Valid @RequestBean RequestParamSecuritiesTrades request) {
+    public Flux<Object[]> getSecuritiesTradesStream(@Valid @RequestBean RequestParamSecuritiesTrades request) {
         return securitiesTradesService.fetch(request);
     }
 
