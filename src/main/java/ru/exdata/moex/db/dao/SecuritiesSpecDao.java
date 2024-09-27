@@ -40,7 +40,7 @@ public class SecuritiesSpecDao {
 
     @Transactional
     public @NonNull Flux<rSecuritiesSpec> findByListLvl(Integer lvl) {
-        return securitiesSpecRepository.findByListLvl(lvl.toString());
+        return securitiesSpecRepository.findByListing(lvl.toString());
     }
 
 }
