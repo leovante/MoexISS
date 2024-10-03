@@ -26,6 +26,11 @@ micronaut:
           enabled: true
           max-connections: 50
   http.client.ssl.insecure-trust-all-certificates: true
+  codec:
+    json:
+      additional-types:
+        - application/x-ndjson
+        - application/octet-stream
 
 datasources:
   liquibase:

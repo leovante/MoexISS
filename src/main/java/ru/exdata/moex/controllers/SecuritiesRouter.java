@@ -1,7 +1,6 @@
 package ru.exdata.moex.controllers;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.validation.Validated;
 import jakarta.validation.Valid;
@@ -19,7 +18,7 @@ public class SecuritiesRouter {
     private final SecuritiesHandler securitiesService;
 
     @Get("/securities")
-    @Produces(MediaType.APPLICATION_JSON_STREAM)
+    @Produces(value = "application/x-ndjson")
     @Status(HttpStatus.OK)
     public Flux<Row> getSecuritiesStream(@Valid @RequestBean RequestParamSecurities request) {
         return securitiesService.fetch(request);

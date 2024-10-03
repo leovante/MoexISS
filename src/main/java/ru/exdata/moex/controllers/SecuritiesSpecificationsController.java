@@ -1,10 +1,8 @@
 package ru.exdata.moex.controllers;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.PathVariable;
-import io.micronaut.http.annotation.Status;
+import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.*;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import ru.exdata.moex.db.records.rSecuritiesSpec;
@@ -20,6 +18,7 @@ public class SecuritiesSpecificationsController {
 
     @SneakyThrows
     @Get("/securities/listing/{listing}/sync")
+    @Produces(MediaType.APPLICATION_JSON)
     @Status(HttpStatus.OK)
     public List<rSecuritiesSpec> getSecuritiesSpecificationsSync(@PathVariable Integer listing) {
         return specificationsSecuritiesHandler.fetchByListingLvl(listing).collectList().toFuture().get();

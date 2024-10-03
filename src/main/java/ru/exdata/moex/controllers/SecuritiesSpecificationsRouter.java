@@ -1,7 +1,6 @@
 package ru.exdata.moex.controllers;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -15,7 +14,7 @@ public class SecuritiesSpecificationsRouter {
     private final SpecificationsSecuritiesHandler specificationsSecuritiesHandler;
 
     @Get("/securities/listing/{listing}")
-    @Produces(MediaType.APPLICATION_JSON_STREAM)
+    @Produces(value = "application/x-ndjson")
     @Status(HttpStatus.OK)
     public Flux<rSecuritiesSpec> getSecuritiesStream(@PathVariable Integer listing) {
         return specificationsSecuritiesHandler.fetchByListingLvl(listing);

@@ -1,7 +1,7 @@
 mvn clean install -DskipTests
 # docker system prune
 # docker image prune
-docker build -t leovante/moex2:latest -t leovante/moex2:0.1.11 .
+docker build -t leovante/moex2:latest -t leovante/moex2:0.1.13 .
 docker push -a leovante/moex2
 
 docker compose up -d

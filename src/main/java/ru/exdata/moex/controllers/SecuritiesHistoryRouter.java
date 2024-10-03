@@ -1,7 +1,6 @@
 package ru.exdata.moex.controllers;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.validation.Validated;
 import jakarta.validation.Valid;
@@ -18,7 +17,7 @@ public class SecuritiesHistoryRouter {
     private final SecuritiesHistoryHandler securitiesHistoryHandler;
 
     @Get("/history/engines/stock/markets/shares/boards/{board}/securities/{security}")
-    @Produces(MediaType.APPLICATION_JSON_STREAM)
+    @Produces(value = "application/x-ndjson")
     @Status(HttpStatus.OK)
     public Flux<Object[]> getSecuritiesHistoryStream(@Valid @RequestBean RequestParamSecuritiesHistory request) {
         return securitiesHistoryHandler.fetch(request);
