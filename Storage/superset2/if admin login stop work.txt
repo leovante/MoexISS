@@ -1,0 +1,20 @@
+# Nukes containers:
+docker rm -f $(docker ps -aq | awk '{print $1}')
+# Nukes images:
+docker rmi -f $(docker images | awk '{print $3}')
+# Nukes volumes:
+docker-compose down -v
+# Re-Builds docker-compose:
+docker-compose build
+# Stand everything back up:
+docker-compose up
+
+docker compose --file docker-compose-gitlab.yaml exec superset2 superset fab create-admin \
+    --username admin \
+    --firstname Superset \
+    --lastname Admin \
+    --email admin@example.com \
+    --password admin
+
+## here start work, but you can try
+sudo docker compose --file docker-compose-image-tag.yml exec superset superset db upgrade

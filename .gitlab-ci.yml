@@ -1,0 +1,68 @@
+stages:
+  - publish
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-DskipTests=true"
+  CI_REGISTRY_IMAGE: "index.docker.io/leovante/moex-iss"
+
+docker-build:
+  stage: publish
+  image: docker:24.0.7
+  services:
+    - name: docker:24.0.7-dind-alpine3.19
+      alias: docker
+      command: [ "--tls=false", "--privileged" ]
+  before_script:
+    #    - echo "Registry $CI_REGISTRY"
+    #    - echo "Username $CI_REGISTRY_USER"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker image prune -a -f
+    - apk update
+    - apk add --update openjdk21 maven
+  script:
+    #    - echo "DOCKER_HOST $DOCKER_HOST"
+    #    - echo "CI_REGISTRY_IMAGE $CI_REGISTRY_IMAGE"
+    #    - echo "CI_COMMIT_REF_SLUG $CI_COMMIT_REF_SLUG"
+    #    - docker info
+    - echo "Building Docker image with version ${CI_COMMIT_SHORT_SHA}"
+    - mvn $MAVEN_OPTS package
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:latest" .
+    #    - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+    - echo "'Image built:' $CI_REGISTRY_IMAGE:latest"
+  artifacts:
+    name: "moex-iss"
+    when: on_success
+    expire_in: "30 days"
+    paths:
+      - "target/moex-iss-1.0-SNAPSHOT.jar"
+  tags:
+    - docker-runner
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "develop"'
+
+deploy:
+  stage: deploy
+  image: docker:24.0.7
+  before_script:
+    - echo "SHA=latest" >> .env.gitlab
+    #    - echo "SHA=${CI_COMMIT_SHORT_SHA}" >> .env.gitlab
+    - echo "DB_USERNAME=${DB_USERNAME}" >> .env.gitlab
+    - echo "DB_PASSWORD=${DB_PASSWORD}" >> .env.gitlab
+    - echo "DB_NAME=${DB_NAME}" >> .env.gitlab
+    - echo "WD=${WD}" >> .env.gitlab
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker image prune -a -f
+  script:
+    - docker pull "$CI_REGISTRY_IMAGE:latest"
+    - docker stop moex-iss || true
+    - docker rm moex-iss || true
+    #    - docker compose --file="docker-compose-gitlab.yaml" down
+    - docker compose --file="docker-compose-gitlab.yaml" --env-file .env.gitlab up -d
+    #    - docker run -d --name moex-iss "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - rm -f .env.gitlab
+  tags:
+    - docker-runner
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "develop"'

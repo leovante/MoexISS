@@ -6,7 +6,7 @@ USER root
 #COPY ./Storage/mlflow /mlflow-image
 
 COPY ./dockerfile_jupyter_notebook/requirements.txt /tmp/
-RUN pip install --requirement /tmp/requirements.txt && \
+RUN pip install --default-timeout=100 --requirement /tmp/requirements.txt -i https://pypi.org/simple && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER && \
     apt update && \

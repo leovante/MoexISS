@@ -261,10 +261,50 @@ services:
           cpus: '0.2'
           memory: 1024M
 
+  postgres2:
+    container_name: postgres_tinkoff_adapter
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME_TINKOFF}
+      POSTGRES_USER: ${DB_USERNAME_TINKOFF}
+      POSTGRES_PASSWORD: ${DB_PASSWORD_TINKOFF}
+      PGDATA: /data/postgres
+    networks:
+      - my_network
+    ports:
+      - 25017:5432
+    volumes:
+      - postgres_tinkoff_adapter:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - admin_user=admin
+      - admin_password=admin
+    networks:
+      - my_network
+    ports:
+      - '3000:3000'
+    volumes:
+      - ${WD}/grafana/data:/var/lib/grafana
+
 volumes:
   pg_moex2:
     external: false
     name: pg_moex2
+  postgres_tinkoff_adapter:
+    external: false
+    name: postgres_tinkoff_adapter
   pg_data:
     external: false
     name: pg_data

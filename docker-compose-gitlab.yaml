@@ -1,0 +1,272 @@
+version: '3.5'
+services:
+
+  postgres1:
+    image: postgres
+    container_name: postgres_moex2
+    restart: always
+    environment:
+      PGUSER: postgres
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pg_moex2:/var/lib/postgresql/data
+    ports:
+      - '5440:5432'
+    networks:
+      - my_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  moex-iss:
+    image: leovante/moex-iss:${SHA}
+    container_name: moex-iss
+    depends_on:
+      - postgres1
+    environment:
+      APP_PORT: 8080
+      DB_HOST: postgres1
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JVM_OPTS: >
+        -XX:+CrashOnOutOfMemoryError
+    restart: always
+    ports:
+      - '24300:8080'
+    networks:
+      - my_network
+    command: [ "java","-jar","-Dliquibase.hub.mode=off","/usr/local/service/moex-iss-1.0-SNAPSHOT.jar" ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://moex-iss:8080/health" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+
+  pgadmin:
+    container_name: pgadmin
+    build:
+      context: .
+      dockerfile: ./dockerfile_pgadmin/Dockerfile
+    environment:
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+      #      PGADMIN_CONFIG_SERVER_MODE: 'True'
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    volumes:
+      - ${WD}/pgadmin2/:/var/lib/pgadmin/
+    ports:
+      - '5050:80'
+    networks:
+      - my_network
+    depends_on:
+      - postgres1
+    healthcheck:
+      test: [ "CMD", "wget", "-O", "-", "http://localhost:80/misc/ping" ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 140s
+
+  minio-image:
+    container_name: minio
+    build:
+      context: .
+      dockerfile: ./dockerfile_minio/Dockerfile
+    restart: always
+    working_dir: "/minio-image/storage"
+    environment:
+      MINIO_ACCESS_KEY: minio-image
+      MINIO_SECRET_KEY: minio-image-pass
+    volumes:
+      - ${WD}/minio/storage/:/minio-image/storage/
+    ports:
+      - '9000:9000'
+    networks:
+      - my_network
+    command: server /minio-image/storage
+
+  mlflow-image:
+    container_name: "mlflow-image"
+    build:
+      context: .
+      dockerfile: ./dockerfile_mlflowserver/Dockerfile
+    working_dir: "/mlflow-image"
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio-image:9000
+      AWS_ACCESS_KEY_ID: minio-image
+      AWS_SECRET_ACCESS_KEY: minio-image-pass
+    volumes:
+      - ${WD}/mlflow/:/mlflow-image/
+    ports:
+      - '5500:5500'
+    command: mlflow server --host 0.0.0.0 --port 5500 --backend-store-uri /mlflow-image/mlruns
+
+  jupyter-image:
+    container_name: jupyter
+    build:
+      context: .
+      dockerfile: ./dockerfile_jupyter_notebook/Dockerfile
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio-image:9000
+      AWS_ACCESS_KEY_ID: minio-image
+      AWS_SECRET_ACCESS_KEY: minio-image-pass
+      MLFLOW_TRACKING_URI: http://mlflow-image:5500
+    volumes:
+      - ${WD}/notebooks/:/home/jovyan/work/
+      - ${WD}/q_pack/:/home/jovyan/work/q_pack/
+      - ${WD}/mlflow/:/mlflow-image/
+    networks:
+      - my_network
+    ports:
+      - '8888:8888'
+
+  redis:
+    container_name: redis
+    image: redis
+    restart: always
+    volumes:
+      - redis:/data
+    networks:
+      - my_network
+    ports:
+      - '6379:6379'
+
+  superset:
+    container_name: superset
+    build:
+      context: .
+      dockerfile: ./dockerfile_superset/Dockerfile
+    restart: always
+    environment:
+      MAPBOX_API_KEY: ${MAPBOX_API_KEY}
+      SUPERSET_HOME: /etc/superset
+    volumes:
+      - ${WD}/superset/superset_config.py:/etc/superset/superset_config.py
+      - ${WD}/superset/superset.db:/var/lib/superset/superset.db
+    networks:
+      - my_network
+    ports:
+      - '8088:8088'
+    depends_on:
+      - redis
+
+  superset2:
+    container_name: superset2
+    build:
+      context: .
+      dockerfile: ./dockerfile_superset2/Dockerfile
+    restart: always
+    environment:
+      MAPBOX_API_KEY: ${MAPBOX_API_KEY}
+      SUPERSET_HOME: /etc/superset
+      SUPERSET_CONFIG_PATH: /etc/superset/superset_config.py
+    volumes:
+      - ${WD}/superset2/superset_config.py:/etc/superset/superset_config.py
+      - ${WD}/superset2/superset.db:/var/lib/superset/superset.db
+    networks:
+      - my_network
+    ports:
+      - '8089:8088'
+    depends_on:
+      - redis
+
+  postgres_secmaster:
+    build:
+      context: .
+      dockerfile: ./dockerfile_postgres_secmaster/Dockerfile
+    restart: always
+    container_name: postgres_secmaster
+    networks:
+      - my_network
+    ports:
+      - '5432:5432'
+    environment:
+      PGUSER: postgres
+      POSTGRES_USER: postgres
+      SHARED_PASSWORD: password
+      POSTGRES_PASSWORD: posgres349
+      POSTGRES_DB: securities_master
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_airflow:
+    image: postgres
+    container_name: postgres_airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    networks:
+      - my_network
+    ports:
+      - '5444:5432'
+    volumes:
+      - pg_data_airflow:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow:
+    image: airflow
+    container_name: airflow
+    build:
+      context: .
+      dockerfile: ./dockerfile_airflow/Dockerfile
+      args:
+        AIRFLOW_DEPS: gcp_api,s3
+        PYTHON_DEPS: MarkupSafe==2.0.1 WTForms==2.3.3 SQLAlchemy==1.3.23 Flask-SQLAlchemy==2.4.4
+    restart: always
+    depends_on:
+      - postgres_airflow
+    networks:
+      - my_network
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=Local
+      - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+    volumes:
+      - ${WD}/airflow/dags/:/usr/local/airflow/dags
+      - ${WD}/q_pack/:/usr/local/airflow/dags/q_pack
+    ports:
+      - '8080:8080'
+    command: webserver
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 1024M
+
+volumes:
+  pg_moex2:
+    external: false
+    name: pg_moex2
+  pg_data:
+    external: false
+    name: pg_data
+  pg_data_airflow:
+    external: false
+    name: pg_data_airflow
+  redis:
+    external: false
+    name: redis
+
+networks:
+  my_network:
