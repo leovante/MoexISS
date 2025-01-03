@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.SecuritiesCandlesDao;
 import ru.exdata.moex.db.entity.SecuritiesCandlesAbstract;
 import ru.exdata.moex.dto.RequestParamSecuritiesCandles;
@@ -61,7 +62,7 @@ public class SecuritiesCandlesHandler {
                                 .findAllByBeginAtAndSecurity(request.getFrom(), request.getInterval(), request.getSecurity())
                                 .map(it -> SecuritiesCandlesMapper.fromEntityToDtoCandles((SecuritiesCandlesAbstract) it)))
                 .doOnError(e -> new Exception(e.getMessage()))
-                .switchIfEmpty(fetchAndSave(request))
+                .switchIfEmpty(fetchWebClientAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
                     if (!request.getFrom().isBefore(request.getTill())) {
                         return false;
@@ -79,7 +80,7 @@ public class SecuritiesCandlesHandler {
                                 .findAllByBeginAtAndSecurity(request.getTill(), request.getInterval(), request.getSecurity())
                                 .map(it -> SecuritiesCandlesMapper.fromEntityToDtoCandles((SecuritiesCandlesAbstract) it)))
                 .doOnError(e -> new Exception(e.getMessage()))
-                .switchIfEmpty(fetchAndSave(request))
+                .switchIfEmpty(fetchWebClientAndSave(request))
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
                     holidayService.decrementTillOneDay(request);
                     holidayService.weekendsDecrementTillOneDay(request);
@@ -87,7 +88,7 @@ public class SecuritiesCandlesHandler {
                 }));
     }
 
-    protected Flux<Row> fetchAndSave(RequestParamSecuritiesCandles request) {
+    protected Flux<Row> fetchWebClientAndSave(RequestParamSecuritiesCandles request) {
         if (holidayService.isHoliday(request.getFrom(), request.getBoard(), request.getSecurity())) {
             return Flux.empty();
         }
@@ -98,7 +99,8 @@ public class SecuritiesCandlesHandler {
         var till = request.getTill();
 
         PageNumber pageNumber = new PageNumber();
-        return Flux.defer(() -> fetchPageable(request, pageNumber, from, till)
+        return Flux.defer(() -> fetchWebClientPageable(request, pageNumber, from, till)
+                        .publishOn(Schedulers.boundedElastic())
                         .doOnNext(it -> securitiesCandlesDao.save(it, interval, security).subscribe()))
                 // добавить тут логику для реверс
                 // добавить для pageNumber сохранять последнюю полученную дату
@@ -106,10 +108,10 @@ public class SecuritiesCandlesHandler {
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> pageNumber.get() >= 0));
     }
 
-    private Flux<Row> fetchPageable(RequestParamSecuritiesCandles request,
-                                    PageNumber pageNumber,
-                                    LocalDate from,
-                                    LocalDate till) {
+    private Flux<Row> fetchWebClientPageable(RequestParamSecuritiesCandles request,
+                                             PageNumber pageNumber,
+                                             LocalDate from,
+                                             LocalDate till) {
         if (pageNumber.get() < 0) {
             return Flux.empty();
         }

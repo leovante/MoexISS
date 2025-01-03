@@ -39,8 +39,8 @@ docker-build:
       - "target/moex-iss-1.0-SNAPSHOT.jar"
   tags:
     - docker-runner
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "develop"'
+  only:
+    - develop
 
 deploy:
   stage: deploy
@@ -64,5 +64,5 @@ deploy:
     - rm -f .env.gitlab
   tags:
     - docker-runner
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "develop"'
+  only:
+    - develop

@@ -6,6 +6,7 @@ import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.exdata.moex.db.entity.SecuritiesSpec;
 import ru.exdata.moex.db.records.rSecuritiesSpec;
 import ru.exdata.moex.db.repository.SecuritiesSpecRepository;
@@ -26,16 +27,19 @@ public class SecuritiesSpecDao {
 
     @Transactional
     public Flux<SecuritiesSpec> save(Row dto, String secId) {
-        log.info("save security spec for, {}", secId);
-        if (dto == null || dto.getName() == null || dto.getValuee() == null || secId == null) {
-            return Flux.empty();
-        }
-        var sec = SecuritiesSpecMapper.fromDtoToEntity(dto, secId);
-        return Flux.from(securitiesSpecRepository.findBySecIdAndName(secId, dto.getName()))
-                .filter(element -> !element.getValuee().equalsIgnoreCase(sec.getValuee()))
-                .flatMap(element -> securitiesSpecRepository.delete(element)
-                        .then(securitiesSpecRepository.save(sec)))
-                .switchIfEmpty(securitiesSpecRepository.save(sec));
+        return Mono.fromCallable(() -> SecuritiesSpecMapper.fromDtoToEntity(dto, secId))
+                .flatMapMany(sec -> securitiesSpecRepository.findBySecIdAndName(secId, dto.getName())
+                        .filter(element -> !element.getValuee().equalsIgnoreCase(sec.getValuee()))
+                        .flatMap(element -> securitiesSpecRepository.delete(element)
+                                .then(securitiesSpecRepository.save(sec))
+                                .doOnSuccess(saved -> log.debug("SecuritiesSpec updated: {}", saved)))
+                        .switchIfEmpty(securitiesSpecRepository.save(sec)
+                                .doOnSuccess(saved -> log.debug("SecuritiesSpec saved: {}", saved))))
+                .doOnCancel(() -> log.warn("Pipeline SecuritiesSpec canceled"))
+                .onErrorResume(e -> {
+                    log.error("Error occurred: " + e.getMessage());
+                    return Flux.empty();
+                });
     }
 
     @Transactional

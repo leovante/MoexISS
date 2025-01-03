@@ -64,5 +64,5 @@ app:
 logger:
   levels:
     root: INFO
-    io.micronaut.http.client: DEBUG
-    ru.exdata.moex: DEBUG
+    io.micronaut.http.client: ${LOGGER_HTTP_CLIENT:INFO}
+    ru.exdata.moex: ${LOGGER_EXDATA_MOEX:INFO}

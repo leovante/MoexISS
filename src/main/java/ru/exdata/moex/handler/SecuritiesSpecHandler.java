@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import ru.exdata.moex.db.dao.SecuritiesSpecDao;
 import ru.exdata.moex.dto.securitiesSpec.Data;
 import ru.exdata.moex.dto.securitiesSpec.DataDescription;
@@ -13,6 +14,7 @@ import ru.exdata.moex.handler.client.SecuritiesSpecApiClient;
 import ru.exdata.moex.mapper.SecuritiesSpecMapper;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Получение спецификации акции списком.
@@ -26,14 +28,23 @@ public class SecuritiesSpecHandler {
     private final SecuritiesSpecDao securitiesSpecDao;
 
     public Flux<Row> fetchBySecId(String secId) {
-        return Mono.just(secId)
-                .flatMapMany(id -> Flux.from(securitiesSpecDao.findBySecId(id))
+        return securitiesSpecDao.findBySecId(secId)
+                .flatMap(sec -> Mono.fromCallable(() -> sec)
+                        .doOnNext(entity -> log.debug("Found entity: {}", entity))
+                        .filter(Objects::nonNull)
                         .map(SecuritiesSpecMapper::fromEntityToDto)
-                        .switchIfEmpty(fetchSecurities(id)
-                                .doOnNext(it -> securitiesSpecDao.save(it, id).subscribe())));
+                        .doOnNext(dto -> log.debug("Mapped to DTO: {}", dto)))
+                .switchIfEmpty(Flux.defer(() -> fetchSecuritiesSpecs(secId))
+                        .publishOn(Schedulers.boundedElastic())
+                        .doOnNext(it -> securitiesSpecDao.save(it, secId).subscribe()))
+                .doOnCancel(() -> log.warn("Pipeline canceled"))
+                .onErrorResume(e -> {
+                    log.error("Error occurred: {}", e.getMessage());
+                    return Flux.empty(); // Propagate the error
+                });
     }
 
-    private Flux<Row> fetchSecurities(String secId) {
+    private Flux<Row> fetchSecuritiesSpecs(String secId) {
         return securitiesSpecApiClient.fetch(secId)
                 .filter(it -> !it.getData().isEmpty())
                 .map(it -> getDataById(it.getData(), DataDescription.class))

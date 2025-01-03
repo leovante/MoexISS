@@ -30,7 +30,7 @@ public class SecuritiesSync {
                         .filter(it -> it.getUpdateDate().toLocalDate().isBefore(LocalDate.now()))
                         .flux()
                         .flatMap(sync -> fetchStocks()
-                                .map(it -> fetchSpecs(it.getSecId())))
+                                .map(it -> fetchSpecs(it.getSecId()).subscribe()))
                         .blockLast());
 
         moexSyncDao.save(MoexSync.builder()

@@ -43,9 +43,9 @@ public class SecuritiesCandlesSyncHandler extends SecuritiesCandlesHandler {
                                         request.getFrom(), request.getInterval(), request.getSecurity())
                                 .flux()
                                 .filter(it -> it == 0)
-                                .flatMap(it -> fetchAndSave(request))
+                                .flatMap(it -> fetchWebClientAndSave(request))
                 )
-                .doOnError(e -> new Exception(e.getMessage()))
+                .doOnError(Flux::error)
                 .repeatWhen(transactions -> transactions.takeWhile(transactionCount -> {
                     if (!request.getFrom().isBefore(request.getTill())) {
                         return false;
